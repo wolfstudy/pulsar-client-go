@@ -19,9 +19,6 @@ fuzz/initial-corpus/
 # IDE generated files
 .idea/
 
-# dep generated files
-vendor
-
 # Mac swap file
 *.DS_Store
 
