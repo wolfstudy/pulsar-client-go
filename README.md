@@ -45,7 +45,7 @@ An example of a producer and consumer can be seen in the included [cli](https://
 
 ## Contributions
 
-Contributions are welcome. Please create an issue before beginning work on major contributions. Refer to the [CONTRIBUTING.md](/CONTRIBUTING.md) doc for more information.
+Contributions are welcome. Please create an issue before beginning work on major contributions. Refer to the [CONTRIBUTING.md](/docs/en/CONTRIBUTING.md) doc for more information.
 
 # Local Development
 
