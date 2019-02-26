@@ -8,7 +8,7 @@ cache:
     - $GOPATH/gopkg.in/alecthomas
 go:
   - "1.11.x"
-sudo: false
+sudo: true
 install:
   - export PATH=$PATH:$PWD/linux-amd64/
   - GO111MODULE=on go install . ./cmd/...
