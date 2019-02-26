@@ -11,7 +11,7 @@ go:
 sudo: false
 
 before_install:
-  - chmod +x build.sh
+  - chmod +x check.sh
 install:
   - export PATH=$PATH:$PWD/linux-amd64/
   - GO111MODULE=on go install .
