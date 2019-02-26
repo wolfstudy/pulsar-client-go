@@ -9,9 +9,13 @@ cache:
 go:
   - "1.11.x"
 sudo: false
+
+before_install:
+  - chmod +x check.sh
+  - sudo apt-get install libpcap-dev
 install:
   - export PATH=$PATH:$PWD/linux-amd64/
-  - GO111MODULE=on go install . ./cmd/...
+  - GO111MODULE=on go install .
   - GO111MODULE=off go get -u gopkg.in/alecthomas/gometalinter.v2
   - GO111MODULE=off gometalinter.v2 --install
 script:
