@@ -12,6 +12,7 @@ sudo: false
 
 before_install:
   - chmod +x check.sh
+  - sudo apt-get install libpcap-dev
 install:
   - export PATH=$PATH:$PWD/linux-amd64/
   - GO111MODULE=on go install .
