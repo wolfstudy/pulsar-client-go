@@ -2,7 +2,7 @@ module github.com/Comcast/pulsar-client-go
 
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
-	github.com/golang/protobuf v1.1.0
+	github.com/golang/protobuf v1.3.0
 	github.com/google/go-cmp v0.2.0 // indirect
 	github.com/google/gopacket v1.1.16
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
