@@ -24,7 +24,6 @@ import (
 
 	"github.com/Comcast/pulsar-client-go/core/frame"
 	"github.com/Comcast/pulsar-client-go/pkg/api"
-	"github.com/Comcast/pulsar-client-go/pkg/log"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -96,7 +95,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 
 					if resp := srv.handleFrame(f, remoteAddr); resp != nil {
 						if err := resp.Encode(c); err != nil {
-							log.Error(os.Stderr, err)
+							fmt.Fprintln(os.Stderr, err)
 							return
 						}
 					}
