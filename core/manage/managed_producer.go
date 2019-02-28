@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/Comcast/pulsar-client-go/core/pub"
-	"github.com/Comcast/pulsar-client-go/utils"
 	"github.com/Comcast/pulsar-client-go/pkg/api"
+	"github.com/Comcast/pulsar-client-go/utils"
 )
 
 // ProducerConfig is used to configure a ManagedProducer.
