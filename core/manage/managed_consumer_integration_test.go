@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/pulsar-client-go/core/msg"
-	"github.com/Comcast/pulsar-client-go/utils"
+	"github.com/wolfstudy/pulsar-client-go/core/msg"
+	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
 func TestManagedConsumer_Int_ReceiveAsync(t *testing.T) {

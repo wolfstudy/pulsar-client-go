@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Comcast/pulsar-client-go/pkg/api"
+	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 )
 
 // NewClientPool initializes a ClientPool.

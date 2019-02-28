@@ -25,13 +25,14 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
-	"github.com/Comcast/pulsar-client-go/core/manage"
-	"github.com/Comcast/pulsar-client-go/core/msg"
 	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/wolfstudy/pulsar-client-go/core/manage"
+	"github.com/wolfstudy/pulsar-client-go/core/msg"
 )
 
 var args = struct {

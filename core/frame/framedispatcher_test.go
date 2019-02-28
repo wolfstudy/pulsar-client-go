@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/pulsar-client-go/pkg/api"
+	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 )
 
 type dispatcherTestCase struct {

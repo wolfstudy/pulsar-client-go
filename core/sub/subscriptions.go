@@ -16,9 +16,9 @@ package sub
 import (
 	"sync"
 
-	"github.com/Comcast/pulsar-client-go/core/frame"
-	"github.com/Comcast/pulsar-client-go/core/pub"
-	"github.com/Comcast/pulsar-client-go/utils"
+	"github.com/wolfstudy/pulsar-client-go/core/frame"
+	"github.com/wolfstudy/pulsar-client-go/core/pub"
+	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
 // NewSubscriptions returns a ready-to-use subscriptions.

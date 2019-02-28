@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/pulsar-client-go/core/frame"
-	"github.com/Comcast/pulsar-client-go/pkg/api"
+	"github.com/wolfstudy/pulsar-client-go/core/frame"
+	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 )
 
 func TestPinger_HandlePing(t *testing.T) {

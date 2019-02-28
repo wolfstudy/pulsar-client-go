@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/pulsar-client-go/core/frame"
-	"github.com/Comcast/pulsar-client-go/pkg/api"
-	"github.com/Comcast/pulsar-client-go/utils"
 	"github.com/golang/protobuf/proto"
+	"github.com/wolfstudy/pulsar-client-go/core/frame"
+	"github.com/wolfstudy/pulsar-client-go/pkg/api"
+	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
 func TestConnector(t *testing.T) {

@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Comcast/pulsar-client-go/utils"
+	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
 // ClientConfig is used to configure a Pulsar client.

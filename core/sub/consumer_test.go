@@ -20,10 +20,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Comcast/pulsar-client-go/core/frame"
-	"github.com/Comcast/pulsar-client-go/core/msg"
-	"github.com/Comcast/pulsar-client-go/pkg/api"
 	"github.com/golang/protobuf/proto"
+	"github.com/wolfstudy/pulsar-client-go/core/frame"
+	"github.com/wolfstudy/pulsar-client-go/core/msg"
+	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 )
 
 func TestConsumer_Flow(t *testing.T) {

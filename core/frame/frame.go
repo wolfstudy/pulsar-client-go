@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Comcast/pulsar-client-go/pkg/api"
 	"github.com/golang/protobuf/proto"
+	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 )
 
 // MaxFrameSize is defined by the Pulsar spec with a single

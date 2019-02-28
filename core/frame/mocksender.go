@@ -16,7 +16,7 @@ package frame
 import (
 	"sync"
 
-	"github.com/Comcast/pulsar-client-go/pkg/api"
+	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 )
 
 // CmdSender is an interface that is capable of sending

@@ -19,9 +19,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Comcast/pulsar-client-go/core/msg"
-	"github.com/Comcast/pulsar-client-go/core/sub"
-	"github.com/Comcast/pulsar-client-go/utils"
+	"github.com/wolfstudy/pulsar-client-go/core/msg"
+	"github.com/wolfstudy/pulsar-client-go/core/sub"
+	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
 // ConsumerConfig is used to configure a ManagedConsumer.

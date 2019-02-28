@@ -17,12 +17,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Comcast/pulsar-client-go/core/frame"
-	"github.com/Comcast/pulsar-client-go/core/msg"
-	"github.com/Comcast/pulsar-client-go/core/pub"
-	"github.com/Comcast/pulsar-client-go/pkg/api"
-	"github.com/Comcast/pulsar-client-go/utils"
 	"github.com/golang/protobuf/proto"
+	"github.com/wolfstudy/pulsar-client-go/core/frame"
+	"github.com/wolfstudy/pulsar-client-go/core/msg"
+	"github.com/wolfstudy/pulsar-client-go/core/pub"
+	"github.com/wolfstudy/pulsar-client-go/pkg/api"
+	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
 // NewPubsub returns a ready-to-use pubsub.
