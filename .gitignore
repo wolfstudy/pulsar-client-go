@@ -8,13 +8,13 @@
 certs
 
 # ignore compiled cli
-cli/cli
+cmd/cli/cli
 
 # ignore fuzz artifacts
-fuzz/pulsar-corpus-gen
-fuzz/*.zip
-fuzz/*-workdir/
-fuzz/initial-corpus/
+pkg/fuzz/pulsar-corpus-gen
+pkg/fuzz/*.zip
+pkg/fuzz/*-workdir/
+pkg/fuzz/initial-corpus/
 
 # IDE generated files
 .idea/
