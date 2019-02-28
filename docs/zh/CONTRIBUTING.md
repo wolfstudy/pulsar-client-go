@@ -32,8 +32,8 @@ If you don't currently have a go environment installed，install Go according to
 ### mac os && linux
 
 ```
-$ mkdir -p $HOME/github.com/Comcast
-$ cd $HOME/github.com/Comcast
+$ mkdir -p $HOME/github.com/wolfstudy
+$ cd $HOME/github.com/wolfstudy
 $ git clone git@github.com:wolfstudy/pulsar-client-go.git
 $ cd pulsar-client-go
 $ go mod tidy
