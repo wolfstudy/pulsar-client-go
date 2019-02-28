@@ -3,12 +3,9 @@
 
 package api
 
-import (
-	fmt "fmt"
-	math "math"
-
-	proto "github.com/golang/protobuf/proto"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -19,7 +16,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type CompressionType int32
 
@@ -36,7 +33,6 @@ var CompressionType_name = map[int32]string{
 	2: "ZLIB",
 	3: "ZSTD",
 }
-
 var CompressionType_value = map[string]int32{
 	"NONE": 0,
 	"LZ4":  1,
@@ -49,11 +45,9 @@ func (x CompressionType) Enum() *CompressionType {
 	*p = x
 	return p
 }
-
 func (x CompressionType) String() string {
 	return proto.EnumName(CompressionType_name, int32(x))
 }
-
 func (x *CompressionType) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(CompressionType_value, data, "CompressionType")
 	if err != nil {
@@ -62,9 +56,8 @@ func (x *CompressionType) UnmarshalJSON(data []byte) error {
 	*x = CompressionType(value)
 	return nil
 }
-
 func (CompressionType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{0}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{0}
 }
 
 type ServerError int32
@@ -113,7 +106,6 @@ var ServerError_name = map[int32]string{
 	17: "InvalidTopicName",
 	18: "IncompatibleSchema",
 }
-
 var ServerError_value = map[string]int32{
 	"UnknownError":                          0,
 	"MetadataError":                         1,
@@ -141,11 +133,9 @@ func (x ServerError) Enum() *ServerError {
 	*p = x
 	return p
 }
-
 func (x ServerError) String() string {
 	return proto.EnumName(ServerError_name, int32(x))
 }
-
 func (x *ServerError) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(ServerError_value, data, "ServerError")
 	if err != nil {
@@ -154,9 +144,8 @@ func (x *ServerError) UnmarshalJSON(data []byte) error {
 	*x = ServerError(value)
 	return nil
 }
-
 func (ServerError) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{1}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{1}
 }
 
 type AuthMethod int32
@@ -172,7 +161,6 @@ var AuthMethod_name = map[int32]string{
 	1: "AuthMethodYcaV1",
 	2: "AuthMethodAthens",
 }
-
 var AuthMethod_value = map[string]int32{
 	"AuthMethodNone":   0,
 	"AuthMethodYcaV1":  1,
@@ -184,11 +172,9 @@ func (x AuthMethod) Enum() *AuthMethod {
 	*p = x
 	return p
 }
-
 func (x AuthMethod) String() string {
 	return proto.EnumName(AuthMethod_name, int32(x))
 }
-
 func (x *AuthMethod) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(AuthMethod_value, data, "AuthMethod")
 	if err != nil {
@@ -197,9 +183,8 @@ func (x *AuthMethod) UnmarshalJSON(data []byte) error {
 	*x = AuthMethod(value)
 	return nil
 }
-
 func (AuthMethod) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{2}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{2}
 }
 
 // Each protocol version identify new features that are
@@ -241,7 +226,6 @@ var ProtocolVersion_name = map[int32]string{
 	12: "v12",
 	13: "v13",
 }
-
 var ProtocolVersion_value = map[string]int32{
 	"v0":  0,
 	"v1":  1,
@@ -264,11 +248,9 @@ func (x ProtocolVersion) Enum() *ProtocolVersion {
 	*p = x
 	return p
 }
-
 func (x ProtocolVersion) String() string {
 	return proto.EnumName(ProtocolVersion_name, int32(x))
 }
-
 func (x *ProtocolVersion) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(ProtocolVersion_value, data, "ProtocolVersion")
 	if err != nil {
@@ -277,9 +259,8 @@ func (x *ProtocolVersion) UnmarshalJSON(data []byte) error {
 	*x = ProtocolVersion(value)
 	return nil
 }
-
 func (ProtocolVersion) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{3}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{3}
 }
 
 type Schema_Type int32
@@ -299,7 +280,6 @@ var Schema_Type_name = map[int32]string{
 	3: "Protobuf",
 	4: "Avro",
 }
-
 var Schema_Type_value = map[string]int32{
 	"None":     0,
 	"String":   1,
@@ -313,11 +293,9 @@ func (x Schema_Type) Enum() *Schema_Type {
 	*p = x
 	return p
 }
-
 func (x Schema_Type) String() string {
 	return proto.EnumName(Schema_Type_name, int32(x))
 }
-
 func (x *Schema_Type) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(Schema_Type_value, data, "Schema_Type")
 	if err != nil {
@@ -326,9 +304,8 @@ func (x *Schema_Type) UnmarshalJSON(data []byte) error {
 	*x = Schema_Type(value)
 	return nil
 }
-
 func (Schema_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{0, 0}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{0, 0}
 }
 
 type CommandSubscribe_SubType int32
@@ -344,7 +321,6 @@ var CommandSubscribe_SubType_name = map[int32]string{
 	1: "Shared",
 	2: "Failover",
 }
-
 var CommandSubscribe_SubType_value = map[string]int32{
 	"Exclusive": 0,
 	"Shared":    1,
@@ -356,11 +332,9 @@ func (x CommandSubscribe_SubType) Enum() *CommandSubscribe_SubType {
 	*p = x
 	return p
 }
-
 func (x CommandSubscribe_SubType) String() string {
 	return proto.EnumName(CommandSubscribe_SubType_name, int32(x))
 }
-
 func (x *CommandSubscribe_SubType) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(CommandSubscribe_SubType_value, data, "CommandSubscribe_SubType")
 	if err != nil {
@@ -369,9 +343,8 @@ func (x *CommandSubscribe_SubType) UnmarshalJSON(data []byte) error {
 	*x = CommandSubscribe_SubType(value)
 	return nil
 }
-
 func (CommandSubscribe_SubType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{9, 0}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{9, 0}
 }
 
 type CommandSubscribe_InitialPosition int32
@@ -385,7 +358,6 @@ var CommandSubscribe_InitialPosition_name = map[int32]string{
 	0: "Latest",
 	1: "Earliest",
 }
-
 var CommandSubscribe_InitialPosition_value = map[string]int32{
 	"Latest":   0,
 	"Earliest": 1,
@@ -396,11 +368,9 @@ func (x CommandSubscribe_InitialPosition) Enum() *CommandSubscribe_InitialPositi
 	*p = x
 	return p
 }
-
 func (x CommandSubscribe_InitialPosition) String() string {
 	return proto.EnumName(CommandSubscribe_InitialPosition_name, int32(x))
 }
-
 func (x *CommandSubscribe_InitialPosition) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(CommandSubscribe_InitialPosition_value, data, "CommandSubscribe_InitialPosition")
 	if err != nil {
@@ -409,9 +379,8 @@ func (x *CommandSubscribe_InitialPosition) UnmarshalJSON(data []byte) error {
 	*x = CommandSubscribe_InitialPosition(value)
 	return nil
 }
-
 func (CommandSubscribe_InitialPosition) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{9, 1}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{9, 1}
 }
 
 type CommandPartitionedTopicMetadataResponse_LookupType int32
@@ -425,7 +394,6 @@ var CommandPartitionedTopicMetadataResponse_LookupType_name = map[int32]string{
 	0: "Success",
 	1: "Failed",
 }
-
 var CommandPartitionedTopicMetadataResponse_LookupType_value = map[string]int32{
 	"Success": 0,
 	"Failed":  1,
@@ -436,11 +404,9 @@ func (x CommandPartitionedTopicMetadataResponse_LookupType) Enum() *CommandParti
 	*p = x
 	return p
 }
-
 func (x CommandPartitionedTopicMetadataResponse_LookupType) String() string {
 	return proto.EnumName(CommandPartitionedTopicMetadataResponse_LookupType_name, int32(x))
 }
-
 func (x *CommandPartitionedTopicMetadataResponse_LookupType) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(CommandPartitionedTopicMetadataResponse_LookupType_value, data, "CommandPartitionedTopicMetadataResponse_LookupType")
 	if err != nil {
@@ -449,9 +415,8 @@ func (x *CommandPartitionedTopicMetadataResponse_LookupType) UnmarshalJSON(data 
 	*x = CommandPartitionedTopicMetadataResponse_LookupType(value)
 	return nil
 }
-
 func (CommandPartitionedTopicMetadataResponse_LookupType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{11, 0}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{11, 0}
 }
 
 type CommandLookupTopicResponse_LookupType int32
@@ -467,7 +432,6 @@ var CommandLookupTopicResponse_LookupType_name = map[int32]string{
 	1: "Connect",
 	2: "Failed",
 }
-
 var CommandLookupTopicResponse_LookupType_value = map[string]int32{
 	"Redirect": 0,
 	"Connect":  1,
@@ -479,11 +443,9 @@ func (x CommandLookupTopicResponse_LookupType) Enum() *CommandLookupTopicRespons
 	*p = x
 	return p
 }
-
 func (x CommandLookupTopicResponse_LookupType) String() string {
 	return proto.EnumName(CommandLookupTopicResponse_LookupType_name, int32(x))
 }
-
 func (x *CommandLookupTopicResponse_LookupType) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(CommandLookupTopicResponse_LookupType_value, data, "CommandLookupTopicResponse_LookupType")
 	if err != nil {
@@ -492,9 +454,8 @@ func (x *CommandLookupTopicResponse_LookupType) UnmarshalJSON(data []byte) error
 	*x = CommandLookupTopicResponse_LookupType(value)
 	return nil
 }
-
 func (CommandLookupTopicResponse_LookupType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{13, 0}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{13, 0}
 }
 
 type CommandAck_AckType int32
@@ -508,7 +469,6 @@ var CommandAck_AckType_name = map[int32]string{
 	0: "Individual",
 	1: "Cumulative",
 }
-
 var CommandAck_AckType_value = map[string]int32{
 	"Individual": 0,
 	"Cumulative": 1,
@@ -519,11 +479,9 @@ func (x CommandAck_AckType) Enum() *CommandAck_AckType {
 	*p = x
 	return p
 }
-
 func (x CommandAck_AckType) String() string {
 	return proto.EnumName(CommandAck_AckType_name, int32(x))
 }
-
 func (x *CommandAck_AckType) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(CommandAck_AckType_value, data, "CommandAck_AckType")
 	if err != nil {
@@ -532,9 +490,8 @@ func (x *CommandAck_AckType) UnmarshalJSON(data []byte) error {
 	*x = CommandAck_AckType(value)
 	return nil
 }
-
 func (CommandAck_AckType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{19, 0}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{19, 0}
 }
 
 // Acks can contain a flag to indicate the consumer
@@ -557,7 +514,6 @@ var CommandAck_ValidationError_name = map[int32]string{
 	3: "BatchDeSerializeError",
 	4: "DecryptionError",
 }
-
 var CommandAck_ValidationError_value = map[string]int32{
 	"UncompressedSizeCorruption": 0,
 	"DecompressionError":         1,
@@ -571,11 +527,9 @@ func (x CommandAck_ValidationError) Enum() *CommandAck_ValidationError {
 	*p = x
 	return p
 }
-
 func (x CommandAck_ValidationError) String() string {
 	return proto.EnumName(CommandAck_ValidationError_name, int32(x))
 }
-
 func (x *CommandAck_ValidationError) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(CommandAck_ValidationError_value, data, "CommandAck_ValidationError")
 	if err != nil {
@@ -584,9 +538,8 @@ func (x *CommandAck_ValidationError) UnmarshalJSON(data []byte) error {
 	*x = CommandAck_ValidationError(value)
 	return nil
 }
-
 func (CommandAck_ValidationError) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{19, 1}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{19, 1}
 }
 
 type CommandGetTopicsOfNamespace_Mode int32
@@ -602,7 +555,6 @@ var CommandGetTopicsOfNamespace_Mode_name = map[int32]string{
 	1: "NON_PERSISTENT",
 	2: "ALL",
 }
-
 var CommandGetTopicsOfNamespace_Mode_value = map[string]int32{
 	"PERSISTENT":     0,
 	"NON_PERSISTENT": 1,
@@ -614,11 +566,9 @@ func (x CommandGetTopicsOfNamespace_Mode) Enum() *CommandGetTopicsOfNamespace_Mo
 	*p = x
 	return p
 }
-
 func (x CommandGetTopicsOfNamespace_Mode) String() string {
 	return proto.EnumName(CommandGetTopicsOfNamespace_Mode_name, int32(x))
 }
-
 func (x *CommandGetTopicsOfNamespace_Mode) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(CommandGetTopicsOfNamespace_Mode_value, data, "CommandGetTopicsOfNamespace_Mode")
 	if err != nil {
@@ -627,9 +577,8 @@ func (x *CommandGetTopicsOfNamespace_Mode) UnmarshalJSON(data []byte) error {
 	*x = CommandGetTopicsOfNamespace_Mode(value)
 	return nil
 }
-
 func (CommandGetTopicsOfNamespace_Mode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{37, 0}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{37, 0}
 }
 
 type BaseCommand_Type int32
@@ -707,7 +656,6 @@ var BaseCommand_Type_name = map[int32]string{
 	34: "GET_SCHEMA",
 	35: "GET_SCHEMA_RESPONSE",
 }
-
 var BaseCommand_Type_value = map[string]int32{
 	"CONNECT":                           2,
 	"CONNECTED":                         3,
@@ -750,11 +698,9 @@ func (x BaseCommand_Type) Enum() *BaseCommand_Type {
 	*p = x
 	return p
 }
-
 func (x BaseCommand_Type) String() string {
 	return proto.EnumName(BaseCommand_Type_name, int32(x))
 }
-
 func (x *BaseCommand_Type) UnmarshalJSON(data []byte) error {
 	value, err := proto.UnmarshalJSONEnum(BaseCommand_Type_value, data, "BaseCommand_Type")
 	if err != nil {
@@ -763,9 +709,8 @@ func (x *BaseCommand_Type) UnmarshalJSON(data []byte) error {
 	*x = BaseCommand_Type(value)
 	return nil
 }
-
 func (BaseCommand_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{41, 0}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{41, 0}
 }
 
 type Schema struct {
@@ -782,17 +727,16 @@ func (m *Schema) Reset()         { *m = Schema{} }
 func (m *Schema) String() string { return proto.CompactTextString(m) }
 func (*Schema) ProtoMessage()    {}
 func (*Schema) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{0}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{0}
 }
-
 func (m *Schema) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Schema.Unmarshal(m, b)
 }
 func (m *Schema) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Schema.Marshal(b, m, deterministic)
 }
-func (m *Schema) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Schema.Merge(m, src)
+func (dst *Schema) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Schema.Merge(dst, src)
 }
 func (m *Schema) XXX_Size() int {
 	return xxx_messageInfo_Schema.Size(m)
@@ -845,17 +789,16 @@ func (m *MessageIdData) Reset()         { *m = MessageIdData{} }
 func (m *MessageIdData) String() string { return proto.CompactTextString(m) }
 func (*MessageIdData) ProtoMessage()    {}
 func (*MessageIdData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{1}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{1}
 }
-
 func (m *MessageIdData) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MessageIdData.Unmarshal(m, b)
 }
 func (m *MessageIdData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MessageIdData.Marshal(b, m, deterministic)
 }
-func (m *MessageIdData) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MessageIdData.Merge(m, src)
+func (dst *MessageIdData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MessageIdData.Merge(dst, src)
 }
 func (m *MessageIdData) XXX_Size() int {
 	return xxx_messageInfo_MessageIdData.Size(m)
@@ -909,17 +852,16 @@ func (m *KeyValue) Reset()         { *m = KeyValue{} }
 func (m *KeyValue) String() string { return proto.CompactTextString(m) }
 func (*KeyValue) ProtoMessage()    {}
 func (*KeyValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{2}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{2}
 }
-
 func (m *KeyValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_KeyValue.Unmarshal(m, b)
 }
 func (m *KeyValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_KeyValue.Marshal(b, m, deterministic)
 }
-func (m *KeyValue) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_KeyValue.Merge(m, src)
+func (dst *KeyValue) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_KeyValue.Merge(dst, src)
 }
 func (m *KeyValue) XXX_Size() int {
 	return xxx_messageInfo_KeyValue.Size(m)
@@ -956,17 +898,16 @@ func (m *KeyLongValue) Reset()         { *m = KeyLongValue{} }
 func (m *KeyLongValue) String() string { return proto.CompactTextString(m) }
 func (*KeyLongValue) ProtoMessage()    {}
 func (*KeyLongValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{3}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{3}
 }
-
 func (m *KeyLongValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_KeyLongValue.Unmarshal(m, b)
 }
 func (m *KeyLongValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_KeyLongValue.Marshal(b, m, deterministic)
 }
-func (m *KeyLongValue) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_KeyLongValue.Merge(m, src)
+func (dst *KeyLongValue) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_KeyLongValue.Merge(dst, src)
 }
 func (m *KeyLongValue) XXX_Size() int {
 	return xxx_messageInfo_KeyLongValue.Size(m)
@@ -1004,17 +945,16 @@ func (m *EncryptionKeys) Reset()         { *m = EncryptionKeys{} }
 func (m *EncryptionKeys) String() string { return proto.CompactTextString(m) }
 func (*EncryptionKeys) ProtoMessage()    {}
 func (*EncryptionKeys) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{4}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{4}
 }
-
 func (m *EncryptionKeys) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EncryptionKeys.Unmarshal(m, b)
 }
 func (m *EncryptionKeys) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_EncryptionKeys.Marshal(b, m, deterministic)
 }
-func (m *EncryptionKeys) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EncryptionKeys.Merge(m, src)
+func (dst *EncryptionKeys) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EncryptionKeys.Merge(dst, src)
 }
 func (m *EncryptionKeys) XXX_Size() int {
 	return xxx_messageInfo_EncryptionKeys.Size(m)
@@ -1054,7 +994,7 @@ type MessageMetadata struct {
 	// Property set on replicated message,
 	// includes the source cluster name
 	ReplicatedFrom *string `protobuf:"bytes,5,opt,name=replicated_from,json=replicatedFrom" json:"replicated_from,omitempty"`
-	//key to decide partition for the msg
+	// key to decide partition for the msg
 	PartitionKey *string `protobuf:"bytes,6,opt,name=partition_key,json=partitionKey" json:"partition_key,omitempty"`
 	// Override namespace's replication
 	ReplicateTo      []string         `protobuf:"bytes,7,rep,name=replicate_to,json=replicateTo" json:"replicate_to,omitempty"`
@@ -1062,7 +1002,7 @@ type MessageMetadata struct {
 	UncompressedSize *uint32          `protobuf:"varint,9,opt,name=uncompressed_size,json=uncompressedSize,def=0" json:"uncompressed_size,omitempty"`
 	// Removed below checksum field from Metadata as
 	// it should be part of send-command which keeps checksum of header + payload
-	//optional sfixed64 checksum = 10;
+	// optional sfixed64 checksum = 10;
 	// differentiate single and batch message metadata
 	NumMessagesInBatch *int32 `protobuf:"varint,11,opt,name=num_messages_in_batch,json=numMessagesInBatch,def=1" json:"num_messages_in_batch,omitempty"`
 	// the timestamp that this event occurs. it is typically set by applications.
@@ -1085,17 +1025,16 @@ func (m *MessageMetadata) Reset()         { *m = MessageMetadata{} }
 func (m *MessageMetadata) String() string { return proto.CompactTextString(m) }
 func (*MessageMetadata) ProtoMessage()    {}
 func (*MessageMetadata) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{5}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{5}
 }
-
 func (m *MessageMetadata) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MessageMetadata.Unmarshal(m, b)
 }
 func (m *MessageMetadata) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MessageMetadata.Marshal(b, m, deterministic)
 }
-func (m *MessageMetadata) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MessageMetadata.Merge(m, src)
+func (dst *MessageMetadata) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MessageMetadata.Merge(dst, src)
 }
 func (m *MessageMetadata) XXX_Size() int {
 	return xxx_messageInfo_MessageMetadata.Size(m)
@@ -1242,17 +1181,16 @@ func (m *SingleMessageMetadata) Reset()         { *m = SingleMessageMetadata{} }
 func (m *SingleMessageMetadata) String() string { return proto.CompactTextString(m) }
 func (*SingleMessageMetadata) ProtoMessage()    {}
 func (*SingleMessageMetadata) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{6}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{6}
 }
-
 func (m *SingleMessageMetadata) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SingleMessageMetadata.Unmarshal(m, b)
 }
 func (m *SingleMessageMetadata) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SingleMessageMetadata.Marshal(b, m, deterministic)
 }
-func (m *SingleMessageMetadata) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SingleMessageMetadata.Merge(m, src)
+func (dst *SingleMessageMetadata) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SingleMessageMetadata.Merge(dst, src)
 }
 func (m *SingleMessageMetadata) XXX_Size() int {
 	return xxx_messageInfo_SingleMessageMetadata.Size(m)
@@ -1336,17 +1274,16 @@ func (m *CommandConnect) Reset()         { *m = CommandConnect{} }
 func (m *CommandConnect) String() string { return proto.CompactTextString(m) }
 func (*CommandConnect) ProtoMessage()    {}
 func (*CommandConnect) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{7}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{7}
 }
-
 func (m *CommandConnect) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandConnect.Unmarshal(m, b)
 }
 func (m *CommandConnect) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandConnect.Marshal(b, m, deterministic)
 }
-func (m *CommandConnect) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandConnect.Merge(m, src)
+func (dst *CommandConnect) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandConnect.Merge(dst, src)
 }
 func (m *CommandConnect) XXX_Size() int {
 	return xxx_messageInfo_CommandConnect.Size(m)
@@ -1434,17 +1371,16 @@ func (m *CommandConnected) Reset()         { *m = CommandConnected{} }
 func (m *CommandConnected) String() string { return proto.CompactTextString(m) }
 func (*CommandConnected) ProtoMessage()    {}
 func (*CommandConnected) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{8}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{8}
 }
-
 func (m *CommandConnected) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandConnected.Unmarshal(m, b)
 }
 func (m *CommandConnected) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandConnected.Marshal(b, m, deterministic)
 }
-func (m *CommandConnected) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandConnected.Merge(m, src)
+func (dst *CommandConnected) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandConnected.Merge(dst, src)
 }
 func (m *CommandConnected) XXX_Size() int {
 	return xxx_messageInfo_CommandConnected.Size(m)
@@ -1486,7 +1422,7 @@ type CommandSubscribe struct {
 	// markd-delete position  on the particular message id and
 	// will send messages from that point
 	StartMessageId *MessageIdData `protobuf:"bytes,9,opt,name=start_message_id,json=startMessageId" json:"start_message_id,omitempty"`
-	/// Add optional metadata key=value to this consumer
+	// / Add optional metadata key=value to this consumer
 	Metadata      []*KeyValue `protobuf:"bytes,10,rep,name=metadata" json:"metadata,omitempty"`
 	ReadCompacted *bool       `protobuf:"varint,11,opt,name=read_compacted,json=readCompacted" json:"read_compacted,omitempty"`
 	Schema        *Schema     `protobuf:"bytes,12,opt,name=schema" json:"schema,omitempty"`
@@ -1502,17 +1438,16 @@ func (m *CommandSubscribe) Reset()         { *m = CommandSubscribe{} }
 func (m *CommandSubscribe) String() string { return proto.CompactTextString(m) }
 func (*CommandSubscribe) ProtoMessage()    {}
 func (*CommandSubscribe) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{9}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{9}
 }
-
 func (m *CommandSubscribe) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandSubscribe.Unmarshal(m, b)
 }
 func (m *CommandSubscribe) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandSubscribe.Marshal(b, m, deterministic)
 }
-func (m *CommandSubscribe) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandSubscribe.Merge(m, src)
+func (dst *CommandSubscribe) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandSubscribe.Merge(dst, src)
 }
 func (m *CommandSubscribe) XXX_Size() int {
 	return xxx_messageInfo_CommandSubscribe.Size(m)
@@ -1637,17 +1572,16 @@ func (m *CommandPartitionedTopicMetadata) Reset()         { *m = CommandPartitio
 func (m *CommandPartitionedTopicMetadata) String() string { return proto.CompactTextString(m) }
 func (*CommandPartitionedTopicMetadata) ProtoMessage()    {}
 func (*CommandPartitionedTopicMetadata) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{10}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{10}
 }
-
 func (m *CommandPartitionedTopicMetadata) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandPartitionedTopicMetadata.Unmarshal(m, b)
 }
 func (m *CommandPartitionedTopicMetadata) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandPartitionedTopicMetadata.Marshal(b, m, deterministic)
 }
-func (m *CommandPartitionedTopicMetadata) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandPartitionedTopicMetadata.Merge(m, src)
+func (dst *CommandPartitionedTopicMetadata) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandPartitionedTopicMetadata.Merge(dst, src)
 }
 func (m *CommandPartitionedTopicMetadata) XXX_Size() int {
 	return xxx_messageInfo_CommandPartitionedTopicMetadata.Size(m)
@@ -1710,17 +1644,16 @@ func (m *CommandPartitionedTopicMetadataResponse) Reset() {
 func (m *CommandPartitionedTopicMetadataResponse) String() string { return proto.CompactTextString(m) }
 func (*CommandPartitionedTopicMetadataResponse) ProtoMessage()    {}
 func (*CommandPartitionedTopicMetadataResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{11}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{11}
 }
-
 func (m *CommandPartitionedTopicMetadataResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandPartitionedTopicMetadataResponse.Unmarshal(m, b)
 }
 func (m *CommandPartitionedTopicMetadataResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandPartitionedTopicMetadataResponse.Marshal(b, m, deterministic)
 }
-func (m *CommandPartitionedTopicMetadataResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandPartitionedTopicMetadataResponse.Merge(m, src)
+func (dst *CommandPartitionedTopicMetadataResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandPartitionedTopicMetadataResponse.Merge(dst, src)
 }
 func (m *CommandPartitionedTopicMetadataResponse) XXX_Size() int {
 	return xxx_messageInfo_CommandPartitionedTopicMetadataResponse.Size(m)
@@ -1787,17 +1720,16 @@ func (m *CommandLookupTopic) Reset()         { *m = CommandLookupTopic{} }
 func (m *CommandLookupTopic) String() string { return proto.CompactTextString(m) }
 func (*CommandLookupTopic) ProtoMessage()    {}
 func (*CommandLookupTopic) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{12}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{12}
 }
-
 func (m *CommandLookupTopic) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandLookupTopic.Unmarshal(m, b)
 }
 func (m *CommandLookupTopic) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandLookupTopic.Marshal(b, m, deterministic)
 }
-func (m *CommandLookupTopic) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandLookupTopic.Merge(m, src)
+func (dst *CommandLookupTopic) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandLookupTopic.Merge(dst, src)
 }
 func (m *CommandLookupTopic) XXX_Size() int {
 	return xxx_messageInfo_CommandLookupTopic.Size(m)
@@ -1873,17 +1805,16 @@ func (m *CommandLookupTopicResponse) Reset()         { *m = CommandLookupTopicRe
 func (m *CommandLookupTopicResponse) String() string { return proto.CompactTextString(m) }
 func (*CommandLookupTopicResponse) ProtoMessage()    {}
 func (*CommandLookupTopicResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{13}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{13}
 }
-
 func (m *CommandLookupTopicResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandLookupTopicResponse.Unmarshal(m, b)
 }
 func (m *CommandLookupTopicResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandLookupTopicResponse.Marshal(b, m, deterministic)
 }
-func (m *CommandLookupTopicResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandLookupTopicResponse.Merge(m, src)
+func (dst *CommandLookupTopicResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandLookupTopicResponse.Merge(dst, src)
 }
 func (m *CommandLookupTopicResponse) XXX_Size() int {
 	return xxx_messageInfo_CommandLookupTopicResponse.Size(m)
@@ -1953,17 +1884,17 @@ func (m *CommandLookupTopicResponse) GetProxyThroughServiceUrl() bool {
 	return Default_CommandLookupTopicResponse_ProxyThroughServiceUrl
 }
 
-/// Create a new Producer on a topic, assigning the given producer_id,
-/// all messages sent with this producer_id will be persisted on the topic
+// / Create a new Producer on a topic, assigning the given producer_id,
+// / all messages sent with this producer_id will be persisted on the topic
 type CommandProducer struct {
 	Topic      *string `protobuf:"bytes,1,req,name=topic" json:"topic,omitempty"`
 	ProducerId *uint64 `protobuf:"varint,2,req,name=producer_id,json=producerId" json:"producer_id,omitempty"`
 	RequestId  *uint64 `protobuf:"varint,3,req,name=request_id,json=requestId" json:"request_id,omitempty"`
-	/// If a producer name is specified, the name will be used,
-	/// otherwise the broker will generate a unique name
+	// / If a producer name is specified, the name will be used,
+	// / otherwise the broker will generate a unique name
 	ProducerName *string `protobuf:"bytes,4,opt,name=producer_name,json=producerName" json:"producer_name,omitempty"`
 	Encrypted    *bool   `protobuf:"varint,5,opt,name=encrypted,def=0" json:"encrypted,omitempty"`
-	/// Add optional metadata key=value to this producer
+	// / Add optional metadata key=value to this producer
 	Metadata             []*KeyValue `protobuf:"bytes,6,rep,name=metadata" json:"metadata,omitempty"`
 	Schema               *Schema     `protobuf:"bytes,7,opt,name=schema" json:"schema,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
@@ -1975,17 +1906,16 @@ func (m *CommandProducer) Reset()         { *m = CommandProducer{} }
 func (m *CommandProducer) String() string { return proto.CompactTextString(m) }
 func (*CommandProducer) ProtoMessage()    {}
 func (*CommandProducer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{14}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{14}
 }
-
 func (m *CommandProducer) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandProducer.Unmarshal(m, b)
 }
 func (m *CommandProducer) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandProducer.Marshal(b, m, deterministic)
 }
-func (m *CommandProducer) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandProducer.Merge(m, src)
+func (dst *CommandProducer) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandProducer.Merge(dst, src)
 }
 func (m *CommandProducer) XXX_Size() int {
 	return xxx_messageInfo_CommandProducer.Size(m)
@@ -2060,17 +1990,16 @@ func (m *CommandSend) Reset()         { *m = CommandSend{} }
 func (m *CommandSend) String() string { return proto.CompactTextString(m) }
 func (*CommandSend) ProtoMessage()    {}
 func (*CommandSend) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{15}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{15}
 }
-
 func (m *CommandSend) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandSend.Unmarshal(m, b)
 }
 func (m *CommandSend) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandSend.Marshal(b, m, deterministic)
 }
-func (m *CommandSend) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandSend.Merge(m, src)
+func (dst *CommandSend) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandSend.Merge(dst, src)
 }
 func (m *CommandSend) XXX_Size() int {
 	return xxx_messageInfo_CommandSend.Size(m)
@@ -2117,17 +2046,16 @@ func (m *CommandSendReceipt) Reset()         { *m = CommandSendReceipt{} }
 func (m *CommandSendReceipt) String() string { return proto.CompactTextString(m) }
 func (*CommandSendReceipt) ProtoMessage()    {}
 func (*CommandSendReceipt) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{16}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{16}
 }
-
 func (m *CommandSendReceipt) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandSendReceipt.Unmarshal(m, b)
 }
 func (m *CommandSendReceipt) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandSendReceipt.Marshal(b, m, deterministic)
 }
-func (m *CommandSendReceipt) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandSendReceipt.Merge(m, src)
+func (dst *CommandSendReceipt) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandSendReceipt.Merge(dst, src)
 }
 func (m *CommandSendReceipt) XXX_Size() int {
 	return xxx_messageInfo_CommandSendReceipt.Size(m)
@@ -2173,17 +2101,16 @@ func (m *CommandSendError) Reset()         { *m = CommandSendError{} }
 func (m *CommandSendError) String() string { return proto.CompactTextString(m) }
 func (*CommandSendError) ProtoMessage()    {}
 func (*CommandSendError) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{17}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{17}
 }
-
 func (m *CommandSendError) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandSendError.Unmarshal(m, b)
 }
 func (m *CommandSendError) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandSendError.Marshal(b, m, deterministic)
 }
-func (m *CommandSendError) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandSendError.Merge(m, src)
+func (dst *CommandSendError) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandSendError.Merge(dst, src)
 }
 func (m *CommandSendError) XXX_Size() int {
 	return xxx_messageInfo_CommandSendError.Size(m)
@@ -2235,17 +2162,16 @@ func (m *CommandMessage) Reset()         { *m = CommandMessage{} }
 func (m *CommandMessage) String() string { return proto.CompactTextString(m) }
 func (*CommandMessage) ProtoMessage()    {}
 func (*CommandMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{18}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{18}
 }
-
 func (m *CommandMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandMessage.Unmarshal(m, b)
 }
 func (m *CommandMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandMessage.Marshal(b, m, deterministic)
 }
-func (m *CommandMessage) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandMessage.Merge(m, src)
+func (dst *CommandMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandMessage.Merge(dst, src)
 }
 func (m *CommandMessage) XXX_Size() int {
 	return xxx_messageInfo_CommandMessage.Size(m)
@@ -2295,17 +2221,16 @@ func (m *CommandAck) Reset()         { *m = CommandAck{} }
 func (m *CommandAck) String() string { return proto.CompactTextString(m) }
 func (*CommandAck) ProtoMessage()    {}
 func (*CommandAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{19}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{19}
 }
-
 func (m *CommandAck) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandAck.Unmarshal(m, b)
 }
 func (m *CommandAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandAck.Marshal(b, m, deterministic)
 }
-func (m *CommandAck) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandAck.Merge(m, src)
+func (dst *CommandAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandAck.Merge(dst, src)
 }
 func (m *CommandAck) XXX_Size() int {
 	return xxx_messageInfo_CommandAck.Size(m)
@@ -2364,17 +2289,16 @@ func (m *CommandActiveConsumerChange) Reset()         { *m = CommandActiveConsum
 func (m *CommandActiveConsumerChange) String() string { return proto.CompactTextString(m) }
 func (*CommandActiveConsumerChange) ProtoMessage()    {}
 func (*CommandActiveConsumerChange) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{20}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{20}
 }
-
 func (m *CommandActiveConsumerChange) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandActiveConsumerChange.Unmarshal(m, b)
 }
 func (m *CommandActiveConsumerChange) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandActiveConsumerChange.Marshal(b, m, deterministic)
 }
-func (m *CommandActiveConsumerChange) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandActiveConsumerChange.Merge(m, src)
+func (dst *CommandActiveConsumerChange) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandActiveConsumerChange.Merge(dst, src)
 }
 func (m *CommandActiveConsumerChange) XXX_Size() int {
 	return xxx_messageInfo_CommandActiveConsumerChange.Size(m)
@@ -2415,17 +2339,16 @@ func (m *CommandFlow) Reset()         { *m = CommandFlow{} }
 func (m *CommandFlow) String() string { return proto.CompactTextString(m) }
 func (*CommandFlow) ProtoMessage()    {}
 func (*CommandFlow) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{21}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{21}
 }
-
 func (m *CommandFlow) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandFlow.Unmarshal(m, b)
 }
 func (m *CommandFlow) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandFlow.Marshal(b, m, deterministic)
 }
-func (m *CommandFlow) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandFlow.Merge(m, src)
+func (dst *CommandFlow) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandFlow.Merge(dst, src)
 }
 func (m *CommandFlow) XXX_Size() int {
 	return xxx_messageInfo_CommandFlow.Size(m)
@@ -2462,17 +2385,16 @@ func (m *CommandUnsubscribe) Reset()         { *m = CommandUnsubscribe{} }
 func (m *CommandUnsubscribe) String() string { return proto.CompactTextString(m) }
 func (*CommandUnsubscribe) ProtoMessage()    {}
 func (*CommandUnsubscribe) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{22}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{22}
 }
-
 func (m *CommandUnsubscribe) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandUnsubscribe.Unmarshal(m, b)
 }
 func (m *CommandUnsubscribe) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandUnsubscribe.Marshal(b, m, deterministic)
 }
-func (m *CommandUnsubscribe) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandUnsubscribe.Merge(m, src)
+func (dst *CommandUnsubscribe) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandUnsubscribe.Merge(dst, src)
 }
 func (m *CommandUnsubscribe) XXX_Size() int {
 	return xxx_messageInfo_CommandUnsubscribe.Size(m)
@@ -2512,17 +2434,16 @@ func (m *CommandSeek) Reset()         { *m = CommandSeek{} }
 func (m *CommandSeek) String() string { return proto.CompactTextString(m) }
 func (*CommandSeek) ProtoMessage()    {}
 func (*CommandSeek) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{23}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{23}
 }
-
 func (m *CommandSeek) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandSeek.Unmarshal(m, b)
 }
 func (m *CommandSeek) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandSeek.Marshal(b, m, deterministic)
 }
-func (m *CommandSeek) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandSeek.Merge(m, src)
+func (dst *CommandSeek) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandSeek.Merge(dst, src)
 }
 func (m *CommandSeek) XXX_Size() int {
 	return xxx_messageInfo_CommandSeek.Size(m)
@@ -2575,17 +2496,16 @@ func (m *CommandReachedEndOfTopic) Reset()         { *m = CommandReachedEndOfTop
 func (m *CommandReachedEndOfTopic) String() string { return proto.CompactTextString(m) }
 func (*CommandReachedEndOfTopic) ProtoMessage()    {}
 func (*CommandReachedEndOfTopic) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{24}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{24}
 }
-
 func (m *CommandReachedEndOfTopic) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandReachedEndOfTopic.Unmarshal(m, b)
 }
 func (m *CommandReachedEndOfTopic) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandReachedEndOfTopic.Marshal(b, m, deterministic)
 }
-func (m *CommandReachedEndOfTopic) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandReachedEndOfTopic.Merge(m, src)
+func (dst *CommandReachedEndOfTopic) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandReachedEndOfTopic.Merge(dst, src)
 }
 func (m *CommandReachedEndOfTopic) XXX_Size() int {
 	return xxx_messageInfo_CommandReachedEndOfTopic.Size(m)
@@ -2615,17 +2535,16 @@ func (m *CommandCloseProducer) Reset()         { *m = CommandCloseProducer{} }
 func (m *CommandCloseProducer) String() string { return proto.CompactTextString(m) }
 func (*CommandCloseProducer) ProtoMessage()    {}
 func (*CommandCloseProducer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{25}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{25}
 }
-
 func (m *CommandCloseProducer) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandCloseProducer.Unmarshal(m, b)
 }
 func (m *CommandCloseProducer) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandCloseProducer.Marshal(b, m, deterministic)
 }
-func (m *CommandCloseProducer) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandCloseProducer.Merge(m, src)
+func (dst *CommandCloseProducer) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandCloseProducer.Merge(dst, src)
 }
 func (m *CommandCloseProducer) XXX_Size() int {
 	return xxx_messageInfo_CommandCloseProducer.Size(m)
@@ -2662,17 +2581,16 @@ func (m *CommandCloseConsumer) Reset()         { *m = CommandCloseConsumer{} }
 func (m *CommandCloseConsumer) String() string { return proto.CompactTextString(m) }
 func (*CommandCloseConsumer) ProtoMessage()    {}
 func (*CommandCloseConsumer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{26}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{26}
 }
-
 func (m *CommandCloseConsumer) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandCloseConsumer.Unmarshal(m, b)
 }
 func (m *CommandCloseConsumer) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandCloseConsumer.Marshal(b, m, deterministic)
 }
-func (m *CommandCloseConsumer) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandCloseConsumer.Merge(m, src)
+func (dst *CommandCloseConsumer) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandCloseConsumer.Merge(dst, src)
 }
 func (m *CommandCloseConsumer) XXX_Size() int {
 	return xxx_messageInfo_CommandCloseConsumer.Size(m)
@@ -2711,17 +2629,16 @@ func (m *CommandRedeliverUnacknowledgedMessages) Reset() {
 func (m *CommandRedeliverUnacknowledgedMessages) String() string { return proto.CompactTextString(m) }
 func (*CommandRedeliverUnacknowledgedMessages) ProtoMessage()    {}
 func (*CommandRedeliverUnacknowledgedMessages) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{27}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{27}
 }
-
 func (m *CommandRedeliverUnacknowledgedMessages) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandRedeliverUnacknowledgedMessages.Unmarshal(m, b)
 }
 func (m *CommandRedeliverUnacknowledgedMessages) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandRedeliverUnacknowledgedMessages.Marshal(b, m, deterministic)
 }
-func (m *CommandRedeliverUnacknowledgedMessages) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandRedeliverUnacknowledgedMessages.Merge(m, src)
+func (dst *CommandRedeliverUnacknowledgedMessages) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandRedeliverUnacknowledgedMessages.Merge(dst, src)
 }
 func (m *CommandRedeliverUnacknowledgedMessages) XXX_Size() int {
 	return xxx_messageInfo_CommandRedeliverUnacknowledgedMessages.Size(m)
@@ -2758,17 +2675,16 @@ func (m *CommandSuccess) Reset()         { *m = CommandSuccess{} }
 func (m *CommandSuccess) String() string { return proto.CompactTextString(m) }
 func (*CommandSuccess) ProtoMessage()    {}
 func (*CommandSuccess) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{28}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{28}
 }
-
 func (m *CommandSuccess) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandSuccess.Unmarshal(m, b)
 }
 func (m *CommandSuccess) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandSuccess.Marshal(b, m, deterministic)
 }
-func (m *CommandSuccess) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandSuccess.Merge(m, src)
+func (dst *CommandSuccess) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandSuccess.Merge(dst, src)
 }
 func (m *CommandSuccess) XXX_Size() int {
 	return xxx_messageInfo_CommandSuccess.Size(m)
@@ -2793,7 +2709,7 @@ func (m *CommandSuccess) GetSchema() *Schema {
 	return nil
 }
 
-/// Response from CommandProducer
+// / Response from CommandProducer
 type CommandProducerSuccess struct {
 	RequestId    *uint64 `protobuf:"varint,1,req,name=request_id,json=requestId" json:"request_id,omitempty"`
 	ProducerName *string `protobuf:"bytes,2,req,name=producer_name,json=producerName" json:"producer_name,omitempty"`
@@ -2810,17 +2726,16 @@ func (m *CommandProducerSuccess) Reset()         { *m = CommandProducerSuccess{}
 func (m *CommandProducerSuccess) String() string { return proto.CompactTextString(m) }
 func (*CommandProducerSuccess) ProtoMessage()    {}
 func (*CommandProducerSuccess) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{29}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{29}
 }
-
 func (m *CommandProducerSuccess) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandProducerSuccess.Unmarshal(m, b)
 }
 func (m *CommandProducerSuccess) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandProducerSuccess.Marshal(b, m, deterministic)
 }
-func (m *CommandProducerSuccess) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandProducerSuccess.Merge(m, src)
+func (dst *CommandProducerSuccess) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandProducerSuccess.Merge(dst, src)
 }
 func (m *CommandProducerSuccess) XXX_Size() int {
 	return xxx_messageInfo_CommandProducerSuccess.Size(m)
@@ -2874,17 +2789,16 @@ func (m *CommandError) Reset()         { *m = CommandError{} }
 func (m *CommandError) String() string { return proto.CompactTextString(m) }
 func (*CommandError) ProtoMessage()    {}
 func (*CommandError) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{30}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{30}
 }
-
 func (m *CommandError) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandError.Unmarshal(m, b)
 }
 func (m *CommandError) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandError.Marshal(b, m, deterministic)
 }
-func (m *CommandError) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandError.Merge(m, src)
+func (dst *CommandError) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandError.Merge(dst, src)
 }
 func (m *CommandError) XXX_Size() int {
 	return xxx_messageInfo_CommandError.Size(m)
@@ -2929,17 +2843,16 @@ func (m *CommandPing) Reset()         { *m = CommandPing{} }
 func (m *CommandPing) String() string { return proto.CompactTextString(m) }
 func (*CommandPing) ProtoMessage()    {}
 func (*CommandPing) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{31}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{31}
 }
-
 func (m *CommandPing) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandPing.Unmarshal(m, b)
 }
 func (m *CommandPing) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandPing.Marshal(b, m, deterministic)
 }
-func (m *CommandPing) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandPing.Merge(m, src)
+func (dst *CommandPing) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandPing.Merge(dst, src)
 }
 func (m *CommandPing) XXX_Size() int {
 	return xxx_messageInfo_CommandPing.Size(m)
@@ -2960,17 +2873,16 @@ func (m *CommandPong) Reset()         { *m = CommandPong{} }
 func (m *CommandPong) String() string { return proto.CompactTextString(m) }
 func (*CommandPong) ProtoMessage()    {}
 func (*CommandPong) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{32}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{32}
 }
-
 func (m *CommandPong) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandPong.Unmarshal(m, b)
 }
 func (m *CommandPong) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandPong.Marshal(b, m, deterministic)
 }
-func (m *CommandPong) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandPong.Merge(m, src)
+func (dst *CommandPong) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandPong.Merge(dst, src)
 }
 func (m *CommandPong) XXX_Size() int {
 	return xxx_messageInfo_CommandPong.Size(m)
@@ -2995,17 +2907,16 @@ func (m *CommandConsumerStats) Reset()         { *m = CommandConsumerStats{} }
 func (m *CommandConsumerStats) String() string { return proto.CompactTextString(m) }
 func (*CommandConsumerStats) ProtoMessage()    {}
 func (*CommandConsumerStats) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{33}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{33}
 }
-
 func (m *CommandConsumerStats) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandConsumerStats.Unmarshal(m, b)
 }
 func (m *CommandConsumerStats) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandConsumerStats.Marshal(b, m, deterministic)
 }
-func (m *CommandConsumerStats) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandConsumerStats.Merge(m, src)
+func (dst *CommandConsumerStats) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandConsumerStats.Merge(dst, src)
 }
 func (m *CommandConsumerStats) XXX_Size() int {
 	return xxx_messageInfo_CommandConsumerStats.Size(m)
@@ -3034,29 +2945,29 @@ type CommandConsumerStatsResponse struct {
 	RequestId    *uint64      `protobuf:"varint,1,req,name=request_id,json=requestId" json:"request_id,omitempty"`
 	ErrorCode    *ServerError `protobuf:"varint,2,opt,name=error_code,json=errorCode,enum=pulsar.proto.ServerError" json:"error_code,omitempty"`
 	ErrorMessage *string      `protobuf:"bytes,3,opt,name=error_message,json=errorMessage" json:"error_message,omitempty"`
-	/// Total rate of messages delivered to the consumer. msg/s
+	// / Total rate of messages delivered to the consumer. msg/s
 	MsgRateOut *float64 `protobuf:"fixed64,4,opt,name=msgRateOut" json:"msgRateOut,omitempty"`
-	/// Total throughput delivered to the consumer. bytes/s
+	// / Total throughput delivered to the consumer. bytes/s
 	MsgThroughputOut *float64 `protobuf:"fixed64,5,opt,name=msgThroughputOut" json:"msgThroughputOut,omitempty"`
-	/// Total rate of messages redelivered by this consumer. msg/s
+	// / Total rate of messages redelivered by this consumer. msg/s
 	MsgRateRedeliver *float64 `protobuf:"fixed64,6,opt,name=msgRateRedeliver" json:"msgRateRedeliver,omitempty"`
-	/// Name of the consumer
+	// / Name of the consumer
 	ConsumerName *string `protobuf:"bytes,7,opt,name=consumerName" json:"consumerName,omitempty"`
-	/// Number of available message permits for the consumer
+	// / Number of available message permits for the consumer
 	AvailablePermits *uint64 `protobuf:"varint,8,opt,name=availablePermits" json:"availablePermits,omitempty"`
-	/// Number of unacknowledged messages for the consumer
+	// / Number of unacknowledged messages for the consumer
 	UnackedMessages *uint64 `protobuf:"varint,9,opt,name=unackedMessages" json:"unackedMessages,omitempty"`
-	/// Flag to verify if consumer is blocked due to reaching threshold of unacked messages
+	// / Flag to verify if consumer is blocked due to reaching threshold of unacked messages
 	BlockedConsumerOnUnackedMsgs *bool `protobuf:"varint,10,opt,name=blockedConsumerOnUnackedMsgs" json:"blockedConsumerOnUnackedMsgs,omitempty"`
-	/// Address of this consumer
+	// / Address of this consumer
 	Address *string `protobuf:"bytes,11,opt,name=address" json:"address,omitempty"`
-	/// Timestamp of connection
+	// / Timestamp of connection
 	ConnectedSince *string `protobuf:"bytes,12,opt,name=connectedSince" json:"connectedSince,omitempty"`
-	/// Whether this subscription is Exclusive or Shared or Failover
+	// / Whether this subscription is Exclusive or Shared or Failover
 	Type *string `protobuf:"bytes,13,opt,name=type" json:"type,omitempty"`
-	/// Total rate of messages expired on this subscription. msg/s
+	// / Total rate of messages expired on this subscription. msg/s
 	MsgRateExpired *float64 `protobuf:"fixed64,14,opt,name=msgRateExpired" json:"msgRateExpired,omitempty"`
-	/// Number of messages in the subscription backlog
+	// / Number of messages in the subscription backlog
 	MsgBacklog           *uint64  `protobuf:"varint,15,opt,name=msgBacklog" json:"msgBacklog,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -3067,17 +2978,16 @@ func (m *CommandConsumerStatsResponse) Reset()         { *m = CommandConsumerSta
 func (m *CommandConsumerStatsResponse) String() string { return proto.CompactTextString(m) }
 func (*CommandConsumerStatsResponse) ProtoMessage()    {}
 func (*CommandConsumerStatsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{34}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{34}
 }
-
 func (m *CommandConsumerStatsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandConsumerStatsResponse.Unmarshal(m, b)
 }
 func (m *CommandConsumerStatsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandConsumerStatsResponse.Marshal(b, m, deterministic)
 }
-func (m *CommandConsumerStatsResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandConsumerStatsResponse.Merge(m, src)
+func (dst *CommandConsumerStatsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandConsumerStatsResponse.Merge(dst, src)
 }
 func (m *CommandConsumerStatsResponse) XXX_Size() int {
 	return xxx_messageInfo_CommandConsumerStatsResponse.Size(m)
@@ -3205,17 +3115,16 @@ func (m *CommandGetLastMessageId) Reset()         { *m = CommandGetLastMessageId
 func (m *CommandGetLastMessageId) String() string { return proto.CompactTextString(m) }
 func (*CommandGetLastMessageId) ProtoMessage()    {}
 func (*CommandGetLastMessageId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{35}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{35}
 }
-
 func (m *CommandGetLastMessageId) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandGetLastMessageId.Unmarshal(m, b)
 }
 func (m *CommandGetLastMessageId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandGetLastMessageId.Marshal(b, m, deterministic)
 }
-func (m *CommandGetLastMessageId) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandGetLastMessageId.Merge(m, src)
+func (dst *CommandGetLastMessageId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandGetLastMessageId.Merge(dst, src)
 }
 func (m *CommandGetLastMessageId) XXX_Size() int {
 	return xxx_messageInfo_CommandGetLastMessageId.Size(m)
@@ -3252,17 +3161,16 @@ func (m *CommandGetLastMessageIdResponse) Reset()         { *m = CommandGetLastM
 func (m *CommandGetLastMessageIdResponse) String() string { return proto.CompactTextString(m) }
 func (*CommandGetLastMessageIdResponse) ProtoMessage()    {}
 func (*CommandGetLastMessageIdResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{36}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{36}
 }
-
 func (m *CommandGetLastMessageIdResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandGetLastMessageIdResponse.Unmarshal(m, b)
 }
 func (m *CommandGetLastMessageIdResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandGetLastMessageIdResponse.Marshal(b, m, deterministic)
 }
-func (m *CommandGetLastMessageIdResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandGetLastMessageIdResponse.Merge(m, src)
+func (dst *CommandGetLastMessageIdResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandGetLastMessageIdResponse.Merge(dst, src)
 }
 func (m *CommandGetLastMessageIdResponse) XXX_Size() int {
 	return xxx_messageInfo_CommandGetLastMessageIdResponse.Size(m)
@@ -3300,17 +3208,16 @@ func (m *CommandGetTopicsOfNamespace) Reset()         { *m = CommandGetTopicsOfN
 func (m *CommandGetTopicsOfNamespace) String() string { return proto.CompactTextString(m) }
 func (*CommandGetTopicsOfNamespace) ProtoMessage()    {}
 func (*CommandGetTopicsOfNamespace) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{37}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{37}
 }
-
 func (m *CommandGetTopicsOfNamespace) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandGetTopicsOfNamespace.Unmarshal(m, b)
 }
 func (m *CommandGetTopicsOfNamespace) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandGetTopicsOfNamespace.Marshal(b, m, deterministic)
 }
-func (m *CommandGetTopicsOfNamespace) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandGetTopicsOfNamespace.Merge(m, src)
+func (dst *CommandGetTopicsOfNamespace) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandGetTopicsOfNamespace.Merge(dst, src)
 }
 func (m *CommandGetTopicsOfNamespace) XXX_Size() int {
 	return xxx_messageInfo_CommandGetTopicsOfNamespace.Size(m)
@@ -3356,17 +3263,16 @@ func (m *CommandGetTopicsOfNamespaceResponse) Reset()         { *m = CommandGetT
 func (m *CommandGetTopicsOfNamespaceResponse) String() string { return proto.CompactTextString(m) }
 func (*CommandGetTopicsOfNamespaceResponse) ProtoMessage()    {}
 func (*CommandGetTopicsOfNamespaceResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{38}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{38}
 }
-
 func (m *CommandGetTopicsOfNamespaceResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandGetTopicsOfNamespaceResponse.Unmarshal(m, b)
 }
 func (m *CommandGetTopicsOfNamespaceResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandGetTopicsOfNamespaceResponse.Marshal(b, m, deterministic)
 }
-func (m *CommandGetTopicsOfNamespaceResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandGetTopicsOfNamespaceResponse.Merge(m, src)
+func (dst *CommandGetTopicsOfNamespaceResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandGetTopicsOfNamespaceResponse.Merge(dst, src)
 }
 func (m *CommandGetTopicsOfNamespaceResponse) XXX_Size() int {
 	return xxx_messageInfo_CommandGetTopicsOfNamespaceResponse.Size(m)
@@ -3404,17 +3310,16 @@ func (m *CommandGetSchema) Reset()         { *m = CommandGetSchema{} }
 func (m *CommandGetSchema) String() string { return proto.CompactTextString(m) }
 func (*CommandGetSchema) ProtoMessage()    {}
 func (*CommandGetSchema) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{39}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{39}
 }
-
 func (m *CommandGetSchema) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandGetSchema.Unmarshal(m, b)
 }
 func (m *CommandGetSchema) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandGetSchema.Marshal(b, m, deterministic)
 }
-func (m *CommandGetSchema) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandGetSchema.Merge(m, src)
+func (dst *CommandGetSchema) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandGetSchema.Merge(dst, src)
 }
 func (m *CommandGetSchema) XXX_Size() int {
 	return xxx_messageInfo_CommandGetSchema.Size(m)
@@ -3461,17 +3366,16 @@ func (m *CommandGetSchemaResponse) Reset()         { *m = CommandGetSchemaRespon
 func (m *CommandGetSchemaResponse) String() string { return proto.CompactTextString(m) }
 func (*CommandGetSchemaResponse) ProtoMessage()    {}
 func (*CommandGetSchemaResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{40}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{40}
 }
-
 func (m *CommandGetSchemaResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CommandGetSchemaResponse.Unmarshal(m, b)
 }
 func (m *CommandGetSchemaResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CommandGetSchemaResponse.Marshal(b, m, deterministic)
 }
-func (m *CommandGetSchemaResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CommandGetSchemaResponse.Merge(m, src)
+func (dst *CommandGetSchemaResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommandGetSchemaResponse.Merge(dst, src)
 }
 func (m *CommandGetSchemaResponse) XXX_Size() int {
 	return xxx_messageInfo_CommandGetSchemaResponse.Size(m)
@@ -3562,17 +3466,16 @@ func (m *BaseCommand) Reset()         { *m = BaseCommand{} }
 func (m *BaseCommand) String() string { return proto.CompactTextString(m) }
 func (*BaseCommand) ProtoMessage()    {}
 func (*BaseCommand) Descriptor() ([]byte, []int) {
-	return fileDescriptor_39529ba7ad9caeb8, []int{41}
+	return fileDescriptor_PulsarApi_8cdc98e965f026ee, []int{41}
 }
-
 func (m *BaseCommand) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_BaseCommand.Unmarshal(m, b)
 }
 func (m *BaseCommand) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_BaseCommand.Marshal(b, m, deterministic)
 }
-func (m *BaseCommand) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BaseCommand.Merge(m, src)
+func (dst *BaseCommand) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BaseCommand.Merge(dst, src)
 }
 func (m *BaseCommand) XXX_Size() int {
 	return xxx_messageInfo_BaseCommand.Size(m)
@@ -3829,19 +3732,6 @@ func (m *BaseCommand) GetGetSchemaResponse() *CommandGetSchemaResponse {
 }
 
 func init() {
-	proto.RegisterEnum("pulsar.proto.CompressionType", CompressionType_name, CompressionType_value)
-	proto.RegisterEnum("pulsar.proto.ServerError", ServerError_name, ServerError_value)
-	proto.RegisterEnum("pulsar.proto.AuthMethod", AuthMethod_name, AuthMethod_value)
-	proto.RegisterEnum("pulsar.proto.ProtocolVersion", ProtocolVersion_name, ProtocolVersion_value)
-	proto.RegisterEnum("pulsar.proto.Schema_Type", Schema_Type_name, Schema_Type_value)
-	proto.RegisterEnum("pulsar.proto.CommandSubscribe_SubType", CommandSubscribe_SubType_name, CommandSubscribe_SubType_value)
-	proto.RegisterEnum("pulsar.proto.CommandSubscribe_InitialPosition", CommandSubscribe_InitialPosition_name, CommandSubscribe_InitialPosition_value)
-	proto.RegisterEnum("pulsar.proto.CommandPartitionedTopicMetadataResponse_LookupType", CommandPartitionedTopicMetadataResponse_LookupType_name, CommandPartitionedTopicMetadataResponse_LookupType_value)
-	proto.RegisterEnum("pulsar.proto.CommandLookupTopicResponse_LookupType", CommandLookupTopicResponse_LookupType_name, CommandLookupTopicResponse_LookupType_value)
-	proto.RegisterEnum("pulsar.proto.CommandAck_AckType", CommandAck_AckType_name, CommandAck_AckType_value)
-	proto.RegisterEnum("pulsar.proto.CommandAck_ValidationError", CommandAck_ValidationError_name, CommandAck_ValidationError_value)
-	proto.RegisterEnum("pulsar.proto.CommandGetTopicsOfNamespace_Mode", CommandGetTopicsOfNamespace_Mode_name, CommandGetTopicsOfNamespace_Mode_value)
-	proto.RegisterEnum("pulsar.proto.BaseCommand_Type", BaseCommand_Type_name, BaseCommand_Type_value)
 	proto.RegisterType((*Schema)(nil), "pulsar.proto.Schema")
 	proto.RegisterType((*MessageIdData)(nil), "pulsar.proto.MessageIdData")
 	proto.RegisterType((*KeyValue)(nil), "pulsar.proto.KeyValue")
@@ -3884,11 +3774,24 @@ func init() {
 	proto.RegisterType((*CommandGetSchema)(nil), "pulsar.proto.CommandGetSchema")
 	proto.RegisterType((*CommandGetSchemaResponse)(nil), "pulsar.proto.CommandGetSchemaResponse")
 	proto.RegisterType((*BaseCommand)(nil), "pulsar.proto.BaseCommand")
+	proto.RegisterEnum("pulsar.proto.CompressionType", CompressionType_name, CompressionType_value)
+	proto.RegisterEnum("pulsar.proto.ServerError", ServerError_name, ServerError_value)
+	proto.RegisterEnum("pulsar.proto.AuthMethod", AuthMethod_name, AuthMethod_value)
+	proto.RegisterEnum("pulsar.proto.ProtocolVersion", ProtocolVersion_name, ProtocolVersion_value)
+	proto.RegisterEnum("pulsar.proto.Schema_Type", Schema_Type_name, Schema_Type_value)
+	proto.RegisterEnum("pulsar.proto.CommandSubscribe_SubType", CommandSubscribe_SubType_name, CommandSubscribe_SubType_value)
+	proto.RegisterEnum("pulsar.proto.CommandSubscribe_InitialPosition", CommandSubscribe_InitialPosition_name, CommandSubscribe_InitialPosition_value)
+	proto.RegisterEnum("pulsar.proto.CommandPartitionedTopicMetadataResponse_LookupType", CommandPartitionedTopicMetadataResponse_LookupType_name, CommandPartitionedTopicMetadataResponse_LookupType_value)
+	proto.RegisterEnum("pulsar.proto.CommandLookupTopicResponse_LookupType", CommandLookupTopicResponse_LookupType_name, CommandLookupTopicResponse_LookupType_value)
+	proto.RegisterEnum("pulsar.proto.CommandAck_AckType", CommandAck_AckType_name, CommandAck_AckType_value)
+	proto.RegisterEnum("pulsar.proto.CommandAck_ValidationError", CommandAck_ValidationError_name, CommandAck_ValidationError_value)
+	proto.RegisterEnum("pulsar.proto.CommandGetTopicsOfNamespace_Mode", CommandGetTopicsOfNamespace_Mode_name, CommandGetTopicsOfNamespace_Mode_value)
+	proto.RegisterEnum("pulsar.proto.BaseCommand_Type", BaseCommand_Type_name, BaseCommand_Type_value)
 }
 
-func init() { proto.RegisterFile("PulsarApi.proto", fileDescriptor_39529ba7ad9caeb8) }
+func init() { proto.RegisterFile("PulsarApi.proto", fileDescriptor_PulsarApi_8cdc98e965f026ee) }
 
-var fileDescriptor_39529ba7ad9caeb8 = []byte{
+var fileDescriptor_PulsarApi_8cdc98e965f026ee = []byte{
 	// 4081 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x3b, 0x4d, 0x73, 0xdb, 0x48,
 	0x76, 0x06, 0x3f, 0x24, 0xf2, 0xf1, 0xab, 0xdd, 0x96, 0x35, 0xf0, 0xc7, 0xd8, 0x34, 0xbc, 0xf6,

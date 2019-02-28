@@ -22,5 +22,14 @@ echo "generate pulsar go client protobuf code..."
 
 pkg=api
 
+#if you have encountered the following error:
+#   undefined: proto.ProtoPackageIsVersion3
+#its because the protoc-gen-go's version not correct.
+#
+# $ git clone https://github.com/golang/protobuf
+# $ cd ~/protobuf/protoc-gen-go
+# $ git chectout tags/v1.2.0 -b v1.2.0
+# $ go install
+
 protoc --go_out=import_path=${pkg}:. PulsarApi.proto
 goimports -w *.pb.go
