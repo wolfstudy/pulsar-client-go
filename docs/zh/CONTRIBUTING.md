@@ -32,9 +32,9 @@ If you don't currently have a go environment installed，install Go according to
 ### mac os && linux
 
 ```
-$ mkdir -p $HOME/github.com/wolfstudy
-$ cd $HOME/github.com/wolfstudy
-$ git clone git@github.com:wolfstudy/pulsar-client-go.git
+$ mkdir -p $HOME/github.com/{yourselfrepo}
+$ cd $HOME/github.com/{yourselfrepo}
+$ git clone git@github.com:yourselfrepo/pulsar-client-go.git
 $ cd pulsar-client-go
 $ go mod tidy
 ```
