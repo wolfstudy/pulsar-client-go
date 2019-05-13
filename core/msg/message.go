@@ -15,9 +15,9 @@ package msg
 
 import (
 	"bytes"
-	"io"
 	"encoding/binary"
 	"errors"
+	"io"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
@@ -42,24 +42,24 @@ func (m *Message) Equal(other *Message) bool {
 		bytes.Equal(m.Payload, other.Payload)
 }
 
+// SingleMessage represents one of the elements of the batch type payload
 type SingleMessage struct {
 	SingleMetaSize uint32
 	SingleMeta     *api.SingleMessageMetadata
 	SinglePayload  []byte
 }
 
-func DecodeBatchMessage(msg *Message)([]*SingleMessage, error){
+// DecodeBatchMessage decode message if num_messages_in_batch exist and bigger than 0
+func DecodeBatchMessage(msg *Message) ([]*SingleMessage, error) {
 	num := msg.Meta.GetNumMessagesInBatch()
-	if  num==0{
-		return nil,errors.New("num_message_in_batch is nil or 0")
+	if num == 0 {
+		return nil, errors.New("num_message_in_batch is nil or 0")
 	}
-	return DecodeBatchPayload(msg.Payload,num)
+	return DecodeBatchPayload(msg.Payload, num)
 }
 
-
-
-// DecodeBatchPayload 解析batch类型的payload
-// 如果生产者推送的时候，使用了batch功能，msg.Payload将是一个[]SingleMessage结构
+// DecodeBatchPayload parses the payload of the batch type
+// If the producer uses the batch function, msg.Payload will be a SingleMessage array structure.
 func DecodeBatchPayload(bp []byte, batchNum int32) ([]*SingleMessage, error) {
 	buf32 := make([]byte, 4)
 	rdBuf := bytes.NewReader(bp)
