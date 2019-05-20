@@ -24,15 +24,43 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
+// SubscriptionMode represents Pulsar's three subscription models
+type SubscriptionMode int
+
+const (
+	// SubscriptionModeExclusive , only one consumer can be bound to a subscription.
+	// If more than one consumer attempts to subscribe to the topic in the same way,
+	// the consumer will receive an error.
+	SubscriptionModeExclusive SubscriptionMode = iota + 1 // 1
+	// SubscriptionModeShard In shared or round robin mode,
+	// multiple consumers can be bound to the same subscription.
+	// Messages are distributed to different consumers via the round robin polling mechanism,
+	// and each message is only distributed to one consumer.
+	// When the consumer disconnects, all messages sent to him
+	// but not confirmed will be rescheduled and distributed to other surviving consumers.
+	SubscriptionModeShard // 2
+
+	// SubscriptionModeFailover multiple consumers can be bound to the same subscription.
+	// Consumers will be sorted in lexicographic order,
+	// and the first consumer is initialized to the only consumer who accepts the message.
+	// This consumer is called the master consumer.
+	// When the master consumer is disconnected,
+	// all messages (unconfirmed and subsequently entered) will be distributed to the next consumer in the queue.
+	SubscriptionModeFailover // 3
+)
+
+// ErrorInvalidSubMode When SubscriptionMode is not one of SubscriptionModeExclusive, SubscriptionModeShard, SubscriptionModeFailover
+var ErrorInvalidSubMode = errors.New("invalid subscription mode")
+
 // ConsumerConfig is used to configure a ManagedConsumer.
 type ConsumerConfig struct {
 	ClientConfig
 
 	Topic     string
-	Name      string // subscription name
-	Exclusive bool   // if false, subscription is shared
-	Earliest  bool   // if true, subscription cursor set to beginning
-	QueueSize int    // number of messages to buffer before dropping messages
+	Name      string           // subscription name
+	SubMode   SubscriptionMode // SubscriptionMode
+	Earliest  bool             // if true, subscription cursor set to beginning
+	QueueSize int              // number of messages to buffer before dropping messages
 
 	NewConsumerTimeout    time.Duration // maximum duration to create Consumer, including topic lookup
 	InitialReconnectDelay time.Duration // how long to initially wait to reconnect Producer
@@ -281,10 +309,16 @@ func (m *ManagedConsumer) newConsumer(ctx context.Context) (*sub.Consumer, error
 	}
 
 	// Create the topic consumer. A non-blank consumer name is required.
-	if m.cfg.Exclusive {
+	switch m.cfg.SubMode {
+	case SubscriptionModeExclusive:
 		return client.NewExclusiveConsumer(ctx, m.cfg.Topic, m.cfg.Name, m.cfg.Earliest, m.queue)
+	case SubscriptionModeFailover:
+		return client.NewFailoverConsumer(ctx, m.cfg.Topic, m.cfg.Name, m.queue)
+	case SubscriptionModeShard:
+		return client.NewSharedConsumer(ctx, m.cfg.Topic, m.cfg.Name, m.queue)
+	default:
+		return nil, ErrorInvalidSubMode
 	}
-	return client.NewSharedConsumer(ctx, m.cfg.Topic, m.cfg.Name, m.queue)
 }
 
 // reconnect blocks while a new Consumer is created.
