@@ -260,6 +260,10 @@ func (c *Client) handleFrame(f frame.Frame) {
 	case api.BaseCommand_PING:
 		err = c.Pinger.HandlePing(msgType, f.BaseCmd.GetPing())
 
+	// In the failover subscription mode,
+	// all consumers receive ACTIVE_CONSUMER_CHANGE when a new subscriber is created or a subscriber exits.
+	case api.BaseCommand_ACTIVE_CONSUMER_CHANGE:
+		err = c.Subscriptions.HandleActiveConsumerChange(f.BaseCmd.GetActiveConsumerChange().GetConsumerId(), f)
 	default:
 		err = fmt.Errorf("unhandled message of type %q", f.BaseCmd.GetType())
 	}
