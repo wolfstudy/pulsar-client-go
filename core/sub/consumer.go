@@ -33,7 +33,7 @@ const maxRedeliverUnacknowledged = 1000
 // A consumer is used to attach to a subscription and
 // consumes messages from it. The provided channel is sent
 // all messages the consumer receives.
-func newConsumer(s frame.CmdSender, dispatcher *frame.Dispatcher, topic string, reqID *msg.MonotonicID, ConsumerID uint64, queue chan msg.Message) *Consumer {
+func NewConsumer(s frame.CmdSender, dispatcher *frame.Dispatcher, topic string, reqID *msg.MonotonicID, ConsumerID uint64, queue chan msg.Message) *Consumer {
 	return &Consumer{
 		S:           s,
 		Topic:       topic,

@@ -43,7 +43,6 @@ func TestManagedConsumer(t *testing.T) {
 		NewConsumerTimeout: time.Second,
 		Topic:              "test-topic",
 		Name:               "test",
-		Exclusive:          false,
 	})
 
 	expectedFrames := []api.BaseCommand_Type{
@@ -121,7 +120,6 @@ func TestManagedConsumer_ReceiveAsync(t *testing.T) {
 		NewConsumerTimeout: time.Second,
 		Topic:              "test-topic",
 		Name:               "test",
-		Exclusive:          false,
 		QueueSize:          queueSize,
 	})
 
@@ -245,7 +243,6 @@ func TestManagedConsumer_SrvClosed(t *testing.T) {
 		NewConsumerTimeout: time.Second,
 		Topic:              "test-topic",
 		Name:               "test",
-		Exclusive:          false,
 	})
 
 	expectedFrames := []api.BaseCommand_Type{
@@ -281,7 +278,6 @@ func TestManagedConsumer_ConsumerClosed(t *testing.T) {
 		NewConsumerTimeout: time.Second,
 		Topic:              "test-topic",
 		Name:               "test",
-		Exclusive:          false,
 	})
 
 	expectedFrames := []api.BaseCommand_Type{

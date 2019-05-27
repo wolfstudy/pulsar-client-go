@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package sub
+package manage
 
 import (
 	"log"
@@ -19,6 +19,7 @@ import (
 
 	"github.com/wolfstudy/pulsar-client-go/core/frame"
 	"github.com/wolfstudy/pulsar-client-go/core/pub"
+	"github.com/wolfstudy/pulsar-client-go/core/sub"
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
@@ -26,7 +27,7 @@ import (
 // NewSubscriptions returns a ready-to-use subscriptions.
 func NewSubscriptions() *Subscriptions {
 	return &Subscriptions{
-		Consumers: make(map[uint64]*Consumer),
+		Consumers: make(map[uint64]*sub.Consumer),
 		Producers: make(map[uint64]*pub.Producer),
 	}
 }
@@ -35,19 +36,19 @@ func NewSubscriptions() *Subscriptions {
 // based on their IDs.
 type Subscriptions struct {
 	Cmu       sync.RWMutex // protects following
-	Consumers map[uint64]*Consumer
+	Consumers map[uint64]*sub.Consumer
 
 	Pmu       sync.Mutex // protects following
 	Producers map[uint64]*pub.Producer
 }
 
-func (s *Subscriptions) AddConsumer(c *Consumer) {
+func (s *Subscriptions) AddConsumer(c *sub.Consumer) {
 	s.Cmu.Lock()
 	s.Consumers[c.ConsumerID] = c
 	s.Cmu.Unlock()
 }
 
-func (s *Subscriptions) DelConsumer(c *Consumer) {
+func (s *Subscriptions) DelConsumer(c *sub.Consumer) {
 	s.Cmu.Lock()
 	delete(s.Consumers, c.ConsumerID)
 	s.Cmu.Unlock()

@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package sub
+package manage
 
 import (
 	"context"
@@ -22,6 +22,7 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/core/frame"
 	"github.com/wolfstudy/pulsar-client-go/core/msg"
 	"github.com/wolfstudy/pulsar-client-go/core/pub"
+	"github.com/wolfstudy/pulsar-client-go/core/sub"
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 )
 
@@ -42,7 +43,7 @@ func TestPubsub_Subscribe_Success(t *testing.T) {
 	defer cancel()
 
 	type response struct {
-		c   *Consumer
+		c   *sub.Consumer
 		err error
 	}
 	resp := make(chan response, 1)
@@ -101,7 +102,7 @@ func TestPubsub_Subscribe_Error(t *testing.T) {
 	defer cancel()
 
 	type response struct {
-		c   *Consumer
+		c   *sub.Consumer
 		err error
 	}
 	resp := make(chan response, 1)
