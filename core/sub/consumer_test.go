@@ -33,7 +33,7 @@ func TestConsumer_Flow(t *testing.T) {
 	reqID := msg.MonotonicID{ID: id}
 	dispatcher := frame.NewFrameDispatcher()
 
-	c := newConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, 1))
+	c := NewConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, 1))
 
 	if err := c.Flow(123); err != nil {
 		t.Fatalf("Flow() err = %v; nil expected", err)
@@ -51,7 +51,7 @@ func TestConsumer_Close_Success(t *testing.T) {
 	reqID := msg.MonotonicID{ID: id}
 	dispatcher := frame.NewFrameDispatcher()
 
-	c := newConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, 1))
+	c := NewConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, 1))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -107,7 +107,7 @@ func TestConsumer_handleMessage(t *testing.T) {
 	reqID := msg.MonotonicID{ID: id}
 	dispatcher := frame.NewFrameDispatcher()
 
-	c := newConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, 1))
+	c := NewConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, 1))
 
 	f := frame.Frame{
 		BaseCmd: &api.BaseCommand{
@@ -157,7 +157,7 @@ func TestConsumer_handleMessage_fullQueue(t *testing.T) {
 	dispatcher := frame.NewFrameDispatcher()
 
 	queueSize := 3
-	c := newConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, queueSize))
+	c := NewConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, queueSize))
 
 	f := frame.Frame{
 		BaseCmd: &api.BaseCommand{
@@ -221,7 +221,7 @@ func TestConsumer_handleCloseConsumer(t *testing.T) {
 	reqID := msg.MonotonicID{ID: id}
 	dispatcher := frame.NewFrameDispatcher()
 
-	c := newConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, 1))
+	c := NewConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, 1))
 
 	select {
 	case <-c.Closed():
@@ -258,7 +258,7 @@ func TestConsumer_handleReachedEndOfTopic(t *testing.T) {
 	reqID := msg.MonotonicID{ID: id}
 	dispatcher := frame.NewFrameDispatcher()
 
-	c := newConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, 1))
+	c := NewConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, 1))
 
 	select {
 	case <-c.ReachedEndOfTopic():
@@ -296,7 +296,7 @@ func TestConsumer_RedeliverOverflow(t *testing.T) {
 
 	queueSize := 1
 	N := 8 // number of msg.Messages to push to consumer
-	c := newConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, queueSize))
+	c := NewConsumer(&ms, dispatcher, "test", &reqID, consID, make(chan msg.Message, queueSize))
 
 	for i := 0; i < N; i++ {
 		entryID := uint64(i)

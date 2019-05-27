@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package sub
+package manage
 
 import (
 	"context"
@@ -21,6 +21,7 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/core/frame"
 	"github.com/wolfstudy/pulsar-client-go/core/msg"
 	"github.com/wolfstudy/pulsar-client-go/core/pub"
+	"github.com/wolfstudy/pulsar-client-go/core/sub"
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
@@ -50,8 +51,8 @@ type Pubsub struct {
 
 // Subscribe subscribes to the given topic. The queueSize determines the buffer
 // size of the Consumer.Messages() channel.
-func (t *Pubsub) Subscribe(ctx context.Context, topic, sub string, subType api.CommandSubscribe_SubType,
-	initialPosition api.CommandSubscribe_InitialPosition, queue chan msg.Message) (*Consumer, error) {
+func (t *Pubsub) Subscribe(ctx context.Context, topic, subscribe string, subType api.CommandSubscribe_SubType,
+	initialPosition api.CommandSubscribe_InitialPosition, queue chan msg.Message) (*sub.Consumer, error) {
 	requestID := t.ReqID.Next()
 	consumerID := t.ConsumerID.Next()
 
@@ -60,7 +61,7 @@ func (t *Pubsub) Subscribe(ctx context.Context, topic, sub string, subType api.C
 		Subscribe: &api.CommandSubscribe{
 			SubType:         subType.Enum(),
 			Topic:           proto.String(topic),
-			Subscription:    proto.String(sub),
+			Subscription:    proto.String(subscribe),
 			RequestId:       requestID,
 			ConsumerId:      consumerID,
 			InitialPosition: initialPosition.Enum(),
@@ -73,7 +74,7 @@ func (t *Pubsub) Subscribe(ctx context.Context, topic, sub string, subType api.C
 	}
 	defer cancel()
 
-	c := newConsumer(t.S, t.Dispatcher, topic, t.ReqID, *consumerID, queue)
+	c := sub.NewConsumer(t.S, t.Dispatcher, topic, t.ReqID, *consumerID, queue)
 	// the new subscription needs to be added to the map
 	// before sending the subscribe command, otherwise there'd
 	// be a race between receiving the success result and

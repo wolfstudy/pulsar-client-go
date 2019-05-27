@@ -151,7 +151,6 @@ func TestManagedConsumer_Int_ReceiveAsync_Multiple(t *testing.T) {
 		consumerCfg := ConsumerConfig{
 			ClientConfig: mcCfg,
 			Name:         consumerName,
-			Exclusive:    false,
 			Topic:        topic,
 			QueueSize:    128,
 		}

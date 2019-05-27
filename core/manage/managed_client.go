@@ -59,23 +59,23 @@ func (c ClientConfig) SetDefaults() ClientConfig {
 }
 
 // setDefaults returns a modified config with appropriate zero values set to defaults.
-func (m ClientConfig) setDefaults() ClientConfig {
-	if m.PingFrequency <= 0 {
-		m.PingFrequency = 30 * time.Second // default used by Java client
+func (c ClientConfig) setDefaults() ClientConfig {
+	if c.PingFrequency <= 0 {
+		c.PingFrequency = 30 * time.Second // default used by Java client
 	}
-	if m.PingTimeout <= 0 {
-		m.PingTimeout = m.PingFrequency / 2
+	if c.PingTimeout <= 0 {
+		c.PingTimeout = c.PingFrequency / 2
 	}
-	if m.ConnectTimeout <= 0 {
-		m.ConnectTimeout = 5 * time.Second
+	if c.ConnectTimeout <= 0 {
+		c.ConnectTimeout = 5 * time.Second
 	}
-	if m.InitialReconnectDelay <= 0 {
-		m.InitialReconnectDelay = 1 * time.Second
+	if c.InitialReconnectDelay <= 0 {
+		c.InitialReconnectDelay = 1 * time.Second
 	}
-	if m.MaxReconnectDelay <= 0 {
-		m.MaxReconnectDelay = 2 * time.Minute
+	if c.MaxReconnectDelay <= 0 {
+		c.MaxReconnectDelay = 2 * time.Minute
 	}
-	return m
+	return c
 }
 
 // NewManagedClient returns a ManagedClient for the given address. The

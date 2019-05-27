@@ -46,7 +46,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 	reqID := msg.MonotonicID{0}
 
 	dispatcher := frame.NewFrameDispatcher()
-	subs := sub.NewSubscriptions()
+	subs := NewSubscriptions()
 
 	c := &Client{
 		C:         cnx,
@@ -57,7 +57,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 		Connector:     conn.NewConnector(cnx, dispatcher),
 		Pinger:        srv.NewPinger(cnx, dispatcher),
 		Discoverer:    srv.NewDiscoverer(cnx, dispatcher, &reqID),
-		Pubsub:        sub.NewPubsub(cnx, dispatcher, subs, &reqID),
+		Pubsub:        NewPubsub(cnx, dispatcher, subs, &reqID),
 	}
 
 	handler := func(f frame.Frame) {
@@ -91,11 +91,11 @@ type Client struct {
 
 	Dispatcher *frame.Dispatcher
 
-	Subscriptions *sub.Subscriptions
+	Subscriptions *Subscriptions
 	Connector     *conn.Connector
 	Pinger        *srv.Pinger
 	Discoverer    *srv.Discoverer
-	Pubsub        *sub.Pubsub
+	Pubsub        *Pubsub
 }
 
 // Closed returns a channel that unblocks when the client's connection
