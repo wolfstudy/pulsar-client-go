@@ -183,7 +183,7 @@ func main() {
 					return
 				}
 				sctx, cancel := context.WithTimeout(ctx, time.Second)
-				_, err := mp.Send(sctx, payload)
+				_, err := mp.Send(sctx, payload,"")
 				cancel()
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
@@ -202,7 +202,6 @@ func main() {
 		mcCfg := manage.ConsumerConfig{
 			Name:                  args.name,
 			Topic:                 args.topic,
-			Exclusive:             !args.shared,
 			NewConsumerTimeout:    time.Second,
 			InitialReconnectDelay: time.Second,
 			MaxReconnectDelay:     time.Minute,

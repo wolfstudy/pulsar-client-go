@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
@@ -28,9 +29,16 @@ type Message struct {
 	Topic      string
 	ConsumerID uint64
 
-	Msg     *api.CommandMessage
-	Meta    *api.MessageMetadata
+	Msg  *api.CommandMessage
+	Meta *api.MessageMetadata
+	// Payload for the message
 	Payload []byte
+	// Sets the key of the message for routing policy
+	Key string
+	// Attach application defined properties on the message
+	Properties map[string]string
+	// Set the event time for a given message
+	EventTime *time.Time
 }
 
 // Equal returns true if the provided other Message

@@ -20,6 +20,7 @@ import (
 
 	"github.com/wolfstudy/pulsar-client-go/core/pub"
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
+	"github.com/wolfstudy/pulsar-client-go/pkg/log"
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
@@ -27,8 +28,10 @@ import (
 type ProducerConfig struct {
 	ClientConfig
 
-	Topic string
-	Name  string
+	Topic      string
+	Name       string
+	HashScheme pub.HashingScheme
+	Router     pub.MessageRoutingMode
 
 	NewProducerTimeout    time.Duration // maximum duration to create Producer, including topic lookup
 	InitialReconnectDelay time.Duration // how long to initially wait to reconnect Producer
@@ -73,14 +76,14 @@ type ManagedProducer struct {
 	Cfg        ProducerConfig
 	AsyncErrs  utils.AsyncErrors
 
-	Mu       sync.RWMutex  // protects following
-	Producer *pub.Producer // either producer is nil and wait isn't or vice versa
-	Waitc    chan struct{} // if producer is nil, this will unblock when it's been re-set
+	Mu       sync.RWMutex          // protects following
+	Producer pub.ProducerInterface // either producer is nil and wait isn't or vice versa
+	Waitc    chan struct{}         // if producer is nil, this will unblock when it's been re-set
 }
 
 // Send attempts to use the Producer's Send method if available. If not available,
 // an error is returned.
-func (m *ManagedProducer) Send(ctx context.Context, payload []byte) (*api.CommandSendReceipt, error) {
+func (m *ManagedProducer) Send(ctx context.Context, payload []byte, msgKey string) (*api.CommandSendReceipt, error) {
 	for {
 		m.Mu.RLock()
 		producer := m.Producer
@@ -88,7 +91,7 @@ func (m *ManagedProducer) Send(ctx context.Context, payload []byte) (*api.Comman
 		m.Mu.RUnlock()
 
 		if producer != nil {
-			return producer.Send(ctx, payload)
+			return producer.Send(ctx, payload, msgKey)
 		}
 
 		select {
@@ -104,7 +107,7 @@ func (m *ManagedProducer) Send(ctx context.Context, payload []byte) (*api.Comman
 
 // Set unblocks the "wait" channel (if not nil),
 // and sets the producer under lock.
-func (m *ManagedProducer) Set(p *pub.Producer) {
+func (m *ManagedProducer) Set(p pub.ProducerInterface) {
 	m.Mu.Lock()
 
 	m.Producer = p
@@ -134,7 +137,7 @@ func (m *ManagedProducer) Unset() {
 }
 
 // NewProducer attempts to create a Producer.
-func (m *ManagedProducer) NewProducer(ctx context.Context) (*pub.Producer, error) {
+func (m *ManagedProducer) NewProducer(ctx context.Context) (pub.ProducerInterface, error) {
 	mc, err := m.ClientPool.ForTopic(ctx, m.Cfg.ClientConfig, m.Cfg.Topic)
 	if err != nil {
 		return nil, err
@@ -145,13 +148,33 @@ func (m *ManagedProducer) NewProducer(ctx context.Context) (*pub.Producer, error
 		return nil, err
 	}
 
+	res, err := client.Discoverer.PartitionedMetadata(ctx, m.Cfg.Topic)
+	if err != nil {
+		log.Errorf("get partitioned metadata error:%s", err.Error())
+	}
+
+	partitionNums := res.GetPartitions()
+	if partitionNums > 1 {
+		var router pub.MessageRouter
+		if m.Cfg.Router == pub.UseSinglePartition {
+			router = &pub.SinglePartitionRouter{
+				Partition: partitionNums,
+			}
+		} else {
+			router = &pub.RoundRobinRouter{
+				Counter: 0,
+			}
+		}
+		return client.NewPartitionedProducer(ctx, m.Cfg.Topic, m.Cfg.Name, partitionNums, router)
+	}
+
 	// Create the topic producer. A blank producer name will
 	// cause Pulsar to generate a unique name.
 	return client.NewProducer(ctx, m.Cfg.Topic, m.Cfg.Name)
 }
 
 // Reconnect blocks while a new Producer is created.
-func (m *ManagedProducer) Reconnect(initial bool) *pub.Producer {
+func (m *ManagedProducer) Reconnect(initial bool) pub.ProducerInterface {
 	retryDelay := m.Cfg.InitialReconnectDelay
 
 	for attempt := 1; ; attempt++ {

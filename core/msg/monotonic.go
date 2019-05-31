@@ -25,3 +25,9 @@ func (r *MonotonicID) Next() *uint64 {
 	nid := atomic.AddUint64(&r.ID, 1) - 1
 	return &nid
 }
+
+// next returns the next ID
+func (r *MonotonicID) Last() *uint64 {
+	nid := atomic.LoadUint64(&r.ID) - 1
+	return &nid
+}

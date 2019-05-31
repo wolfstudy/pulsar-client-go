@@ -23,6 +23,7 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/core/pub"
 	"github.com/wolfstudy/pulsar-client-go/core/sub"
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
+	"github.com/wolfstudy/pulsar-client-go/pkg/log"
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
@@ -179,5 +180,53 @@ func (t *Pubsub) Producer(ctx context.Context, topic, producerName string) (*pub
 
 			return nil, utils.NewUnexpectedErrMsg(msgType, *requestID)
 		}
+	}
+}
+
+func (t *Pubsub) PartitionedProducer(ctx context.Context, topic, producerName string,
+	partitionNums uint32, router pub.MessageRouter) (partitionProducer *pub.PartitionedProducer, err error) {
+	var i, j uint32
+
+	type ProducerError struct {
+		partition uint32
+		prod      *pub.Producer
+		err       error
+	}
+
+	pp := &pub.PartitionedProducer{
+		Topic:         topic,
+		NumPartitions: partitionNums,
+		Router:        router,
+		Producers:     make([]*pub.Producer, partitionNums, partitionNums),
+	}
+
+	c := make(chan ProducerError, partitionNums)
+	for i = 0; i < partitionNums; i++ {
+		partitionName := fmt.Sprintf("%s-partition-%d", topic, i)
+		log.Infof("create producer name is: %s", partitionName)
+		producer, err := t.Producer(ctx, partitionName, producerName)
+		c <- ProducerError{
+			partition: i,
+			prod:      producer,
+			err:       err,
+		}
+	}
+
+	for j = 0; j < partitionNums; j++ {
+		pe := <-c
+		err = pe.err
+		pp.Producers[j] = pe.prod
+	}
+
+	if err != nil {
+		// Since there were some failures, cleanup all the partitions that succeeded in creating the producers
+		for _, producer := range pp.Producers {
+			if producer != nil {
+				_ = producer.Close(ctx)
+			}
+		}
+		return nil, err
+	} else {
+		return pp, nil
 	}
 }
