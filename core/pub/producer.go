@@ -24,12 +24,22 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/core/frame"
 	"github.com/wolfstudy/pulsar-client-go/core/msg"
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
+	"github.com/wolfstudy/pulsar-client-go/pkg/log"
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
 // ErrClosedProducer is returned when attempting to send
 // from a closed Producer.
 var ErrClosedProducer = errors.New("producer is closed")
+
+type ProducerInterface interface {
+	Send(ctx context.Context, payload []byte, msgKey string) (*api.CommandSendReceipt, error)
+	Name() string
+	LastSequenceID() uint64
+	Closed() <-chan struct{}
+	ConnClosed() <-chan struct{}
+	Close(ctx context.Context) error
+}
 
 // NewProducer returns a ready-to-use producer. A producer
 // sends messages (type MESSAGE) to Pulsar.
@@ -62,8 +72,63 @@ type Producer struct {
 	Closedc  chan struct{}
 }
 
-// Send sends a message and waits for a SendReceipt.
-func (p *Producer) Send(ctx context.Context, payload []byte) (*api.CommandSendReceipt, error) {
+type PartitionedProducer struct {
+	Topic         string
+	Producers     []*Producer
+	NumPartitions uint32
+	Router        MessageRouter
+	SeqID         msg.MonotonicID
+}
+
+func (pp *PartitionedProducer) Name() string {
+	return pp.Producers[0].ProducerName
+}
+
+func (pp *PartitionedProducer) GetTopic() string {
+	return pp.Topic
+}
+func (pp *PartitionedProducer) LastSequenceID() uint64 {
+	return *pp.SeqID.Last()
+}
+
+func (pp *PartitionedProducer) GetNumPartitions() uint32 {
+	return uint32(len(pp.Producers))
+}
+
+func (pp *PartitionedProducer) Closed() <-chan struct{} {
+	for _, producer := range pp.Producers {
+		<-producer.Closedc
+	}
+	return nil
+}
+func (pp *PartitionedProducer) ConnClosed() <-chan struct{} {
+	for _, producer := range pp.Producers {
+		producer.S.Closed()
+	}
+	return nil
+}
+
+func (pp *PartitionedProducer) Close(ctx context.Context) error {
+	var errMsg string
+	for _, p := range pp.Producers {
+		if err := p.Close(ctx); err != nil {
+			errMsg += fmt.Sprintf("topic %s, name %s: %s ", p.ProducerName, p.Name(), err)
+		}
+	}
+	if errMsg != "" {
+		return errors.New(errMsg)
+	}
+	return nil
+}
+
+func (pp *PartitionedProducer) Send(ctx context.Context, payload []byte, msgKey string) (*api.CommandSendReceipt, error) {
+	partition := pp.Router.ChoosePartition(msgKey, pp.NumPartitions)
+	log.Infof("choose partition is: %d", partition)
+
+	return pp.Producers[partition].Send(ctx, payload, msgKey)
+}
+
+func (p *Producer) Send(ctx context.Context, payload []byte, msgKey string) (*api.CommandSendReceipt, error) {
 	p.Mu.RLock()
 	if p.IsClosed {
 		p.Mu.RUnlock()
@@ -81,11 +146,24 @@ func (p *Producer) Send(ctx context.Context, payload []byte) (*api.CommandSendRe
 			NumMessages: proto.Int32(1),
 		},
 	}
-	metadata := api.MessageMetadata{
-		SequenceId:   sequenceID,
-		ProducerName: proto.String(p.ProducerName),
-		PublishTime:  proto.Uint64(uint64(time.Now().Unix()) * 1000),
-		Compression:  api.CompressionType_NONE.Enum(),
+
+	var metadata api.MessageMetadata
+
+	if msgKey == "" {
+		metadata = api.MessageMetadata{
+			SequenceId:   sequenceID,
+			ProducerName: proto.String(p.ProducerName),
+			PublishTime:  proto.Uint64(uint64(time.Now().Unix()) * 1000),
+			Compression:  api.CompressionType_NONE.Enum(),
+		}
+	} else {
+		metadata = api.MessageMetadata{
+			SequenceId:   sequenceID,
+			ProducerName: proto.String(p.ProducerName),
+			PublishTime:  proto.Uint64(uint64(time.Now().Unix()) * 1000),
+			Compression:  api.CompressionType_NONE.Enum(),
+			PartitionKey: &msgKey,
+		}
 	}
 
 	resp, cancel, err := p.Dispatcher.RegisterProdSeqIDs(p.ProducerID, *sequenceID)
@@ -131,6 +209,14 @@ func (p *Producer) Send(ctx context.Context, payload []byte) (*api.CommandSendRe
 // TODO: Rename Done
 func (p *Producer) Closed() <-chan struct{} {
 	return p.Closedc
+}
+
+func (p *Producer) Name() string {
+	return p.ProducerName
+}
+
+func (p *Producer) LastSequenceID() uint64 {
+	return *p.SeqID.Last()
 }
 
 // ConnClosed unblocks when the producer's connection has been closed. Once that

@@ -28,7 +28,6 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
-
 // TestClient_Int_PubSub creates a producer and multiple consumers.
 // Messages are created by the producer, and then it is asserted
 // that all the consumers receive those messages.
@@ -108,7 +107,7 @@ func TestClient_Int_PubSub(t *testing.T) {
 		// the readers/consumers, since it could get scheduled after a
 		// "read" subtest finishes (timesout)
 		for i := 0; i < N; i++ {
-			if _, err := topicProducer.Send(ctx, []byte(payloads[i])); err != nil {
+			if _, err := topicProducer.Send(ctx, []byte(payloads[i]), ""); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -435,7 +434,7 @@ func TestClient_Int_RedeliverOverflow(t *testing.T) {
 	// Produce messages
 
 	for i := 0; i < N; i++ {
-		if _, err := topicProducer.Send(ctx, []byte(payloads[i])); err != nil {
+		if _, err := topicProducer.Send(ctx, []byte(payloads[i]), ""); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -567,7 +566,7 @@ func TestClient_Int_RedeliverAll(t *testing.T) {
 	// Produce messages
 
 	for i := 0; i < N; i++ {
-		if _, err := topicProducer.Send(ctx, []byte(payloads[i])); err != nil {
+		if _, err := topicProducer.Send(ctx, []byte(payloads[i]), ""); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -632,4 +631,3 @@ MATCH:
 		t.Fatal(err)
 	}
 }
-

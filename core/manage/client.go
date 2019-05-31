@@ -43,7 +43,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 		return nil, err
 	}
 
-	reqID := msg.MonotonicID{0}
+	reqID := msg.MonotonicID{ID: 0}
 
 	dispatcher := frame.NewFrameDispatcher()
 	subs := NewSubscriptions()
@@ -163,6 +163,12 @@ func (c *Client) LookupTopic(ctx context.Context, topic string, authoritative bo
 // given topic.
 func (c *Client) NewProducer(ctx context.Context, topic, producerName string) (*pub.Producer, error) {
 	return c.Pubsub.Producer(ctx, topic, producerName)
+}
+
+// NewProducer creates a new producer capable of sending message to the
+// given topic.
+func (c *Client) NewPartitionedProducer(ctx context.Context, topic, producerName string, partitionNums uint32, router pub.MessageRouter) (*pub.PartitionedProducer, error) {
+	return c.Pubsub.PartitionedProducer(ctx, topic, producerName, partitionNums, router)
 }
 
 // NewSharedConsumer creates a new shared consumer capable of reading messages from the

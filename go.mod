@@ -8,7 +8,8 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/mdlayher/raw v0.0.0-20190220170618-480b93709cce // indirect
 	github.com/sirupsen/logrus v1.3.0
-	github.com/stretchr/testify v1.3.0
+	github.com/spaolacci/murmur3 v1.1.0
+	github.com/stretchr/testify v1.3.0 // indirect
 	golang.org/x/crypto v0.0.0-20190225124518-7f87c0fbb88b // indirect
 	golang.org/x/net v0.0.0-20190227022144-312bce6e941f // indirect
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
