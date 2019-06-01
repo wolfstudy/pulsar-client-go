@@ -18,3 +18,36 @@
  */
 
 package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/wolfstudy/pulsar-client-go/core/manage"
+)
+
+var clientPool = manage.NewClientPool()
+
+func main() {
+	ctx := context.Background()
+
+	consumerConf := manage.ConsumerConfig{
+		ClientConfig: manage.ClientConfig{
+			Addr: "localhost:6650",
+		},
+		Topic:            "hellotopic12",
+		Name:             "sub-1",
+		SubMode:          manage.SubscriptionModeKeyShared,
+		AckTimeoutMillis: 10000,
+	}
+	mp := manage.NewManagedConsumer(clientPool, consumerConf)
+	//messages := make(chan msg.Message, 16)
+	for i := 0; i < 10; i++ {
+		msg, err := mp.Receive(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(string(msg.Payload))
+	}
+}
