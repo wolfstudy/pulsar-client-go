@@ -37,7 +37,7 @@ func main() {
 		ClientConfig: manage.ClientConfig{
 			Addr: "localhost:6650",
 		},
-		Topic:              "shuaige",
+		Topic:              "hellotopic12",
 		Router:             pub.RoundRobinDistribution,
 		NewProducerTimeout: time.Second * 5,
 	}

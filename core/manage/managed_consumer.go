@@ -21,6 +21,7 @@ import (
 
 	"github.com/wolfstudy/pulsar-client-go/core/msg"
 	"github.com/wolfstudy/pulsar-client-go/core/sub"
+	"github.com/wolfstudy/pulsar-client-go/pkg/log"
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
@@ -38,7 +39,7 @@ const (
 	// and each message is only distributed to one consumer.
 	// When the consumer disconnects, all messages sent to him
 	// but not confirmed will be rescheduled and distributed to other surviving consumers.
-	SubscriptionModeShard // 2
+	SubscriptionModeShard  // 2
 
 	// SubscriptionModeFailover multiple consumers can be bound to the same subscription.
 	// Consumers will be sorted in lexicographic order,
@@ -46,7 +47,9 @@ const (
 	// This consumer is called the master consumer.
 	// When the master consumer is disconnected,
 	// all messages (unconfirmed and subsequently entered) will be distributed to the next consumer in the queue.
-	SubscriptionModeFailover // 3
+	SubscriptionModeFailover  // 3
+
+	SubscriptionModeKeyShared  //4
 )
 
 // ErrorInvalidSubMode When SubscriptionMode is not one of SubscriptionModeExclusive, SubscriptionModeShard, SubscriptionModeFailover
@@ -65,6 +68,8 @@ type ConsumerConfig struct {
 	NewConsumerTimeout    time.Duration // maximum duration to create Consumer, including topic lookup
 	InitialReconnectDelay time.Duration // how long to initially wait to reconnect Producer
 	MaxReconnectDelay     time.Duration // maximum time to wait to attempt to reconnect Producer
+
+	AckTimeoutMillis time.Duration
 }
 
 // SetDefaults returns a modified config with appropriate zero values set to defaults.
@@ -112,9 +117,9 @@ type ManagedConsumer struct {
 
 	queue chan msg.Message
 
-	mu       sync.RWMutex  // protects following
-	consumer *sub.Consumer // either consumer is nil and wait isn't or vice versa
-	waitc    chan struct{} // if consumer is nil, this will unblock when it's been re-set
+	mu       sync.RWMutex          // protects following
+	consumer sub.ConsumerInterface // either consumer is nil and wait isn't or vice versa
+	waitc    chan struct{}         // if consumer is nil, this will unblock when it's been re-set
 }
 
 // Ack acquires a consumer and Sends an ACK message for the given message.
@@ -164,13 +169,20 @@ func (m *ManagedConsumer) Receive(ctx context.Context) (msg.Message, error) {
 		// TODO: determine when, if ever, to call
 		// consumer.RedeliverOverflow
 
-		if err := consumer.Flow(1); err != nil {
-			return msg.Message{}, err
+		if len(m.queue) < 1 {
+			if err := consumer.Flow(1); err != nil {
+				return msg.Message{}, err
+			}
 		}
 
 		select {
-		case msg := <-m.queue:
-			return msg, nil
+		case msg, ok := <-m.queue:
+			if ok {
+				if consumer.GetUnAckTracker() != nil {
+					consumer.GetUnAckTracker().Add(msg.Msg.MessageId)
+				}
+				return msg, nil
+			}
 
 		case <-ctx.Done():
 			return msg.Message{}, ctx.Err()
@@ -181,6 +193,7 @@ func (m *ManagedConsumer) Receive(ctx context.Context) (msg.Message, error) {
 		case <-consumer.ConnClosed():
 			return msg.Message{}, errors.New("consumer connection closed")
 		}
+
 	}
 }
 
@@ -241,6 +254,10 @@ CONSUMER:
 			case msg := <-m.queue:
 				msgs <- msg
 
+				if consumer.GetUnAckTracker() != nil {
+					consumer.GetUnAckTracker().Add(msg.Msg.MessageId)
+				}
+
 				if receivedSinceFlow++; receivedSinceFlow >= highwater {
 					if err := consumer.Flow(receivedSinceFlow); err != nil {
 						m.asyncErrs.Send(err)
@@ -267,7 +284,7 @@ CONSUMER:
 
 // set unblocks the "wait" channel (if not nil),
 // and sets the consumer under lock.
-func (m *ManagedConsumer) set(c *sub.Consumer) {
+func (m *ManagedConsumer) set(c sub.ConsumerInterface) {
 	m.mu.Lock()
 
 	m.consumer = c
@@ -297,7 +314,7 @@ func (m *ManagedConsumer) unset() {
 }
 
 // newConsumer attempts to create a Consumer.
-func (m *ManagedConsumer) newConsumer(ctx context.Context) (*sub.Consumer, error) {
+func (m *ManagedConsumer) newConsumer(ctx context.Context) (sub.ConsumerInterface, error) {
 	mc, err := m.clientPool.ForTopic(ctx, m.cfg.ClientConfig, m.cfg.Topic)
 	if err != nil {
 		return nil, err
@@ -308,21 +325,35 @@ func (m *ManagedConsumer) newConsumer(ctx context.Context) (*sub.Consumer, error
 		return nil, err
 	}
 
+	log.Info("create partition consumer...")
+	res, err := client.Discoverer.PartitionedMetadata(ctx, m.cfg.Topic)
+	if err != nil {
+		log.Errorf("get partitioned metadata error:%s", err.Error())
+	}
+
+	partitionNums := res.GetPartitions()
+
 	// Create the topic consumer. A non-blank consumer name is required.
+
 	switch m.cfg.SubMode {
 	case SubscriptionModeExclusive:
 		return client.NewExclusiveConsumer(ctx, m.cfg.Topic, m.cfg.Name, m.cfg.Earliest, m.queue)
 	case SubscriptionModeFailover:
 		return client.NewFailoverConsumer(ctx, m.cfg.Topic, m.cfg.Name, m.queue)
 	case SubscriptionModeShard:
+		if m.cfg.AckTimeoutMillis != 0 {
+			return client.NewConsumerWithCfg(ctx, m.cfg, m.queue, partitionNums)
+		}
 		return client.NewSharedConsumer(ctx, m.cfg.Topic, m.cfg.Name, m.queue)
+	case SubscriptionModeKeyShared:
+		return client.NewConsumerWithCfg(ctx, m.cfg, m.queue, partitionNums)
 	default:
 		return nil, ErrorInvalidSubMode
 	}
 }
 
 // reconnect blocks while a new Consumer is created.
-func (m *ManagedConsumer) reconnect(initial bool) *sub.Consumer {
+func (m *ManagedConsumer) reconnect(initial bool) sub.ConsumerInterface {
 	retryDelay := m.cfg.InitialReconnectDelay
 
 	for attempt := 1; ; attempt++ {
