@@ -104,6 +104,10 @@ func NewManagedConsumer(cp *ClientPool, cfg ConsumerConfig) *ManagedConsumer {
 		queue:      make(chan msg.Message, cfg.QueueSize),
 		waitc:      make(chan struct{}),
 	}
+	if cfg.SubMode == SubscriptionModeShard || cfg.SubMode == SubscriptionModeKeyShared {
+		m.UnAckTracker = NewUnackedMessageTracker()
+		m.UnAckTracker.Start(int64(cfg.AckTimeoutMillis))
+	}
 
 	go m.manage()
 
@@ -122,7 +126,12 @@ func NewPartitionManagedConsumer(cp *ClientPool, cfg ConsumerConfig) (*ManagedPa
 		asyncErrs:  utils.AsyncErrors(cfg.Errs),
 		queue:      make(chan msg.Message, cfg.QueueSize),
 		waitc:      make(chan struct{}),
-		MConsumer:  make([]*ManagedConsumer, 10),
+		MConsumer:  make([]*ManagedConsumer, 0),
+	}
+
+	if cfg.SubMode == SubscriptionModeShard || cfg.SubMode == SubscriptionModeKeyShared {
+		mpc.UnAckTracker = NewUnackedMessageTracker()
+		mpc.UnAckTracker.Start(int64(cfg.AckTimeoutMillis))
 	}
 
 	manageClient := cp.Get(cfg.ClientConfig)
@@ -139,18 +148,30 @@ func NewPartitionManagedConsumer(cp *ClientPool, cfg ConsumerConfig) (*ManagedPa
 		return nil, err
 	}
 	numPartitions := res.GetPartitions()
-
+	topicName := cfg.Topic
 	for i := 0; uint32(i) < numPartitions; i++ {
-		cfg.Topic = fmt.Sprintf("%s-partition-%d", cfg.Topic, i)
+		cfg.Topic = fmt.Sprintf("%s-partition-%d", topicName, i)
 		mpc.MConsumer = append(mpc.MConsumer, NewManagedConsumer(cp, cfg))
 	}
 
-
-
-
-
+	go mpc.getMessageFromSubConsumer(ctx)
 
 	return &mpc, nil
+}
+
+func (mpc *ManagedPartitionConsumer) getMessageFromSubConsumer(ctx context.Context) chan msg.Message {
+	for i := 0; i < len(mpc.MConsumer); i++ {
+		go func(index int) {
+			log.Infof("receive message form index:%d", index)
+			err := mpc.MConsumer[index].ReceiveAsync(ctx, mpc.queue)
+			if err != nil {
+				log.Errorf("receive message error:%s", err.Error())
+				return
+			}
+		}(i)
+	}
+	return mpc.queue
+
 }
 
 type ManagedPartitionConsumer struct {
@@ -160,9 +181,10 @@ type ManagedPartitionConsumer struct {
 
 	queue chan msg.Message
 
-	mu        sync.RWMutex // protects following
-	waitc     chan struct{}
-	MConsumer []*ManagedConsumer
+	mu           sync.RWMutex // protects following
+	waitc        chan struct{}
+	MConsumer    []*ManagedConsumer
+	UnAckTracker *UnackedMessageTracker
 }
 
 // ManagedConsumer wraps a Consumer with reconnect logic.
@@ -173,66 +195,39 @@ type ManagedConsumer struct {
 
 	queue chan msg.Message
 
-	mu       sync.RWMutex          // protects following
-	consumer sub.ConsumerInterface // either consumer is nil and wait isn't or vice versa
-	waitc    chan struct{}         // if consumer is nil, this will unblock when it's been re-set
+	mu           sync.RWMutex          // protects following
+	consumer     *sub.Consumer // either consumer is nil and wait isn't or vice versa
+	waitc        chan struct{}         // if consumer is nil, this will unblock when it's been re-set
+	UnAckTracker *UnackedMessageTracker
 }
 
-
-func (m *ManagedPartitionConsumer) Receive(ctx context.Context) (msg.Message, error) {
+func (mpc *ManagedPartitionConsumer) Receive(ctx context.Context) (msg.Message, error) {
 	for {
-
-
-
-
-
-		m.mu.RLock()
-		consumer := m.consumer
-		wait := m.waitc
-		m.mu.RUnlock()
-
-		if consumer == nil {
-			select {
-			case <-wait:
-				// a new consumer was established.
-				// Re-enter read-lock to obtain it.
-				continue
-			case <-ctx.Done():
-				return msg.Message{}, ctx.Err()
-			}
-		}
-
-		// TODO: determine when, if ever, to call
-		// consumer.RedeliverOverflow
-
-		if len(m.queue) < 1 {
-			if err := consumer.Flow(1); err != nil {
-				return msg.Message{}, err
-			}
-		}
-
 		select {
-		case msg, ok := <-m.queue:
+		case tmpMsg, ok := <-mpc.queue:
 			if ok {
-				if consumer.GetUnAckTracker() != nil {
-					consumer.GetUnAckTracker().Add(msg.Msg.MessageId)
+				if mpc.UnAckTracker != nil {
+					mpc.UnAckTracker.Add(tmpMsg.Msg.GetMessageId())
 				}
-				return msg, nil
+				return tmpMsg, nil
 			}
 
 		case <-ctx.Done():
 			return msg.Message{}, ctx.Err()
 
-		case <-consumer.Closed():
-			return msg.Message{}, errors.New("consumer closed")
-
-		case <-consumer.ConnClosed():
-			return msg.Message{}, errors.New("consumer connection closed")
+			//case <-consumer.Closed():
+			//	return msg.Message{}, errors.New("consumer closed")
+			//
+			//case <-consumer.ConnClosed():
+			//	return msg.Message{}, errors.New("consumer connection closed")
 		}
-
 	}
 }
 
+// Ack acquires a consumer and Sends an ACK message for the given message.
+func (mpc *ManagedPartitionConsumer) Ack(ctx context.Context, msg msg.Message) error {
+	return mpc.MConsumer[msg.Msg.GetMessageId().GetPartition()].Ack(ctx, msg)
+}
 
 // Ack acquires a consumer and Sends an ACK message for the given message.
 func (m *ManagedConsumer) Ack(ctx context.Context, msg msg.Message) error {
@@ -252,7 +247,9 @@ func (m *ManagedConsumer) Ack(ctx context.Context, msg msg.Message) error {
 				return ctx.Err()
 			}
 		}
-
+		if m.UnAckTracker != nil {
+			m.UnAckTracker.Remove(msg.Msg.GetMessageId())
+		}
 		return consumer.Ack(msg)
 	}
 }
@@ -281,19 +278,17 @@ func (m *ManagedConsumer) Receive(ctx context.Context) (msg.Message, error) {
 		// TODO: determine when, if ever, to call
 		// consumer.RedeliverOverflow
 
-		if len(m.queue) < 1 {
-			if err := consumer.Flow(1); err != nil {
-				return msg.Message{}, err
-			}
+		if err := consumer.Flow(1); err != nil {
+			return msg.Message{}, err
 		}
 
 		select {
-		case msg, ok := <-m.queue:
+		case tmpMsg, ok := <-m.queue:
 			if ok {
-				if consumer.GetUnAckTracker() != nil {
-					consumer.GetUnAckTracker().Add(msg.Msg.MessageId)
+				if m.UnAckTracker != nil {
+					m.UnAckTracker.Add(tmpMsg.Msg.GetMessageId())
 				}
-				return msg, nil
+				return tmpMsg, nil
 			}
 
 		case <-ctx.Done():
@@ -320,8 +315,8 @@ func (m *ManagedConsumer) ReceiveAsync(ctx context.Context, msgs chan<- msg.Mess
 	drain := func() {
 		for {
 			select {
-			case msg := <-m.queue:
-				msgs <- msg
+			case tmpMsg := <-m.queue:
+				msgs <- tmpMsg
 			default:
 				return
 			}
@@ -363,11 +358,11 @@ CONSUMER:
 
 		for {
 			select {
-			case msg := <-m.queue:
-				msgs <- msg
+			case tmpMsg := <-m.queue:
+				msgs <- tmpMsg
 
-				if consumer.GetUnAckTracker() != nil {
-					consumer.GetUnAckTracker().Add(msg.Msg.MessageId)
+				if m.UnAckTracker != nil {
+					m.UnAckTracker.Add(tmpMsg.Msg.GetMessageId())
 				}
 
 				if receivedSinceFlow++; receivedSinceFlow >= highwater {
@@ -396,7 +391,7 @@ CONSUMER:
 
 // set unblocks the "wait" channel (if not nil),
 // and sets the consumer under lock.
-func (m *ManagedConsumer) set(c sub.ConsumerInterface) {
+func (m *ManagedConsumer) set(c *sub.Consumer) {
 	m.mu.Lock()
 
 	m.consumer = c
@@ -426,7 +421,7 @@ func (m *ManagedConsumer) unset() {
 }
 
 // newConsumer attempts to create a Consumer.
-func (m *ManagedConsumer) newConsumer(ctx context.Context) (sub.ConsumerInterface, error) {
+func (m *ManagedConsumer) newConsumer(ctx context.Context) (*sub.Consumer, error) {
 	mc, err := m.clientPool.ForTopic(ctx, m.cfg.ClientConfig, m.cfg.Topic)
 	if err != nil {
 		return nil, err
@@ -437,15 +432,6 @@ func (m *ManagedConsumer) newConsumer(ctx context.Context) (sub.ConsumerInterfac
 		return nil, err
 	}
 
-	log.Info("create partition consumer...")
-	//res, err := client.Discoverer.PartitionedMetadata(ctx, m.cfg.Topic)
-	//if err != nil {
-	//	log.Errorf("get partitioned metadata error:%s", err.Error())
-	//}
-	//
-	//partitionNums := res.GetPartitions()
-
-	var partitionNums uint32
 	// Create the topic consumer. A non-blank consumer name is required.
 
 	switch m.cfg.SubMode {
@@ -455,18 +441,18 @@ func (m *ManagedConsumer) newConsumer(ctx context.Context) (sub.ConsumerInterfac
 		return client.NewFailoverConsumer(ctx, m.cfg.Topic, m.cfg.Name, m.queue)
 	case SubscriptionModeShard:
 		if m.cfg.AckTimeoutMillis != 0 {
-			return client.NewConsumerWithCfg(ctx, m.cfg, m.queue, partitionNums)
+			return client.NewConsumerWithCfg(ctx, m.cfg, m.queue)
 		}
 		return client.NewSharedConsumer(ctx, m.cfg.Topic, m.cfg.Name, m.queue)
 	case SubscriptionModeKeyShared:
-		return client.NewConsumerWithCfg(ctx, m.cfg, m.queue, partitionNums)
+		return client.NewConsumerWithCfg(ctx, m.cfg, m.queue)
 	default:
 		return nil, ErrorInvalidSubMode
 	}
 }
 
 // reconnect blocks while a new Consumer is created.
-func (m *ManagedConsumer) reconnect(initial bool) sub.ConsumerInterface {
+func (m *ManagedConsumer) reconnect(initial bool) *sub.Consumer {
 	retryDelay := m.cfg.InitialReconnectDelay
 
 	for attempt := 1; ; attempt++ {
@@ -541,6 +527,9 @@ func (m *ManagedConsumer) RedeliverUnacknowledged(ctx context.Context) error {
 				return ctx.Err()
 			}
 		}
+		if m.UnAckTracker != nil {
+			m.UnAckTracker.clear()
+		}
 		return consumer.RedeliverUnacknowledged(ctx)
 	}
 }
@@ -589,6 +578,9 @@ func (m *ManagedConsumer) Unsubscribe(ctx context.Context) error {
 				return ctx.Err()
 			}
 		}
+		if m.UnAckTracker != nil {
+			m.UnAckTracker.Stop()
+		}
 		return consumer.Unsubscribe(ctx)
 	}
 }
@@ -602,5 +594,8 @@ func (m *ManagedConsumer) Monitor() func() {
 // Close consumer
 func (m *ManagedConsumer) Close(ctx context.Context) error {
 	defer m.Monitor()()
+	if m.UnAckTracker != nil {
+		m.UnAckTracker.Stop()
+	}
 	return m.consumer.Close(ctx)
 }

@@ -53,7 +53,7 @@ func TestManagedProducer(t *testing.T) {
 	}
 
 	payload := []byte("hi")
-	if _, err = mp.Send(ctx, payload); err != nil {
+	if _, err = mp.Send(ctx, payload,""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -116,7 +116,7 @@ func TestManagedProducer_Redirect(t *testing.T) {
 	}
 
 	payload := []byte("hi")
-	if _, err = mp.Send(ctx, payload); err != nil {
+	if _, err = mp.Send(ctx, payload,""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -170,7 +170,7 @@ func TestManagedProducer_SrvClosed(t *testing.T) {
 	}
 
 	payload := []byte("hi")
-	if _, err = mp.Send(ctx, payload); err != nil {
+	if _, err = mp.Send(ctx, payload,""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -257,7 +257,7 @@ func TestManagedProducer_ProducerClosed(t *testing.T) {
 	}
 
 	payload := []byte("hi")
-	if _, err = mp.Send(ctx, payload); err != nil {
+	if _, err = mp.Send(ctx, payload,""); err != nil {
 		t.Fatal(err)
 	}
 

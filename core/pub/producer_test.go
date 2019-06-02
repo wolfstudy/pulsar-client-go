@@ -45,7 +45,7 @@ func TestProducer_Send_Success(t *testing.T) {
 
 	go func() {
 		var r response
-		r.success, r.err = p.Send(ctx, payload)
+		r.success, r.err = p.Send(ctx, payload,"")
 		resp <- r
 	}()
 
@@ -101,7 +101,7 @@ func TestProducer_Send_Error(t *testing.T) {
 
 	go func() {
 		var r response
-		r.success, r.err = p.Send(ctx, payload)
+		r.success, r.err = p.Send(ctx, payload,"")
 		resp <- r
 	}()
 

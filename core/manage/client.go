@@ -165,12 +165,6 @@ func (c *Client) NewProducer(ctx context.Context, topic, producerName string) (*
 	return c.Pubsub.Producer(ctx, topic, producerName)
 }
 
-// NewProducer creates a new producer capable of sending message to the
-// given topic.
-func (c *Client) NewPartitionedProducer(ctx context.Context, topic, producerName string, partitionNums uint32, router pub.MessageRouter) (*pub.PartitionedProducer, error) {
-	return c.Pubsub.PartitionedProducer(ctx, topic, producerName, partitionNums, router)
-}
-
 // NewSharedConsumer creates a new shared consumer capable of reading messages from the
 // given topic.
 // See "Subscription modes" for more information:
@@ -179,8 +173,8 @@ func (c *Client) NewSharedConsumer(ctx context.Context, topic, subscriptionName 
 	return c.Pubsub.Subscribe(ctx, topic, subscriptionName, api.CommandSubscribe_Shared, api.CommandSubscribe_Latest, queue)
 }
 
-func (c *Client) NewConsumerWithCfg(ctx context.Context, cfg ConsumerConfig, queue chan msg.Message, numPartitions uint32) (sub.ConsumerInterface, error) {
-	return c.Pubsub.SubscribeWithCfg(ctx, cfg, queue, numPartitions)
+func (c *Client) NewConsumerWithCfg(ctx context.Context, cfg ConsumerConfig, queue chan msg.Message) (*sub.Consumer, error) {
+	return c.Pubsub.SubscribeWithCfg(ctx, cfg, queue)
 }
 
 // NewExclusiveConsumer creates a new exclusive consumer capable of reading messages from the

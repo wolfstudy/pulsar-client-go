@@ -15,6 +15,7 @@ package manage
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -70,6 +71,53 @@ func NewManagedProducer(cp *ClientPool, cfg ProducerConfig) *ManagedProducer {
 	return &m
 }
 
+func NewManagedPartitionProducer(cp *ClientPool, cfg ProducerConfig) (*ManagedPartitionProducer, error) {
+	cfg = cfg.setDefaults()
+	ctx := context.Background()
+
+	m := ManagedPartitionProducer{
+		ClientPool: cp,
+		Cfg:        cfg,
+		AsyncErrs:  utils.AsyncErrors(cfg.Errs),
+		Waitc:      make(chan struct{}),
+		MProducer:  make([]*ManagedProducer, 0),
+	}
+
+	manageClient := cp.Get(cfg.ClientConfig)
+	client, err := manageClient.Get(ctx)
+	if err != nil {
+		log.Errorf("create client error:%s", err.Error())
+		return nil, err
+	}
+	res, err := client.Discoverer.PartitionedMetadata(ctx, cfg.Topic)
+	if err != nil {
+		log.Errorf("get partition metadata error:%s", err.Error())
+		return nil, err
+	}
+	numPartitions := res.GetPartitions()
+	m.numPartitions = numPartitions
+	topicName := cfg.Topic
+	for i := 0; uint32(i) < numPartitions; i++ {
+		cfg.Topic = fmt.Sprintf("%s-partition-%d", topicName, i)
+		m.MProducer = append(m.MProducer, NewManagedProducer(cp, cfg))
+	}
+
+	var router pub.MessageRouter
+	if m.Cfg.Router == pub.UseSinglePartition {
+		router = &pub.SinglePartitionRouter{
+			Partition: numPartitions,
+		}
+	} else {
+		router = &pub.RoundRobinRouter{
+			Counter: 0,
+		}
+	}
+
+	m.MessageRouter = router
+
+	return &m, nil
+}
+
 // ManagedProducer wraps a Producer with re-connect logic.
 type ManagedProducer struct {
 	ClientPool *ClientPool
@@ -77,8 +125,21 @@ type ManagedProducer struct {
 	AsyncErrs  utils.AsyncErrors
 
 	Mu       sync.RWMutex          // protects following
-	Producer pub.ProducerInterface // either producer is nil and wait isn't or vice versa
+	Producer *pub.Producer // either producer is nil and wait isn't or vice versa
 	Waitc    chan struct{}         // if producer is nil, this will unblock when it's been re-set
+}
+
+type ManagedPartitionProducer struct {
+	ClientPool *ClientPool
+	Cfg        ProducerConfig
+	AsyncErrs  utils.AsyncErrors
+
+	Mu            sync.RWMutex          // protects following
+	Producer      *pub.Producer // either producer is nil and wait isn't or vice versa
+	Waitc         chan struct{}         // if producer is nil, this will unblock when it's been re-set
+	MProducer     []*ManagedProducer
+	MessageRouter pub.MessageRouter
+	numPartitions uint32
 }
 
 // Send attempts to use the Producer's Send method if available. If not available,
@@ -105,9 +166,16 @@ func (m *ManagedProducer) Send(ctx context.Context, payload []byte, msgKey strin
 	}
 }
 
+func (m *ManagedPartitionProducer) Send(ctx context.Context, payload []byte, msgKey string) (*api.CommandSendReceipt, error) {
+	partition := m.MessageRouter.ChoosePartition(msgKey, m.numPartitions)
+	log.Infof("choose partition is: %d, msg payload is: %s, msg key is: %s", partition, string(payload), msgKey)
+
+	return m.MProducer[partition].Send(ctx, payload, msgKey)
+}
+
 // Set unblocks the "wait" channel (if not nil),
 // and sets the producer under lock.
-func (m *ManagedProducer) Set(p pub.ProducerInterface) {
+func (m *ManagedProducer) Set(p *pub.Producer) {
 	m.Mu.Lock()
 
 	m.Producer = p
@@ -137,7 +205,7 @@ func (m *ManagedProducer) Unset() {
 }
 
 // NewProducer attempts to create a Producer.
-func (m *ManagedProducer) NewProducer(ctx context.Context) (pub.ProducerInterface, error) {
+func (m *ManagedProducer) NewProducer(ctx context.Context) (*pub.Producer, error) {
 	mc, err := m.ClientPool.ForTopic(ctx, m.Cfg.ClientConfig, m.Cfg.Topic)
 	if err != nil {
 		return nil, err
@@ -148,33 +216,13 @@ func (m *ManagedProducer) NewProducer(ctx context.Context) (pub.ProducerInterfac
 		return nil, err
 	}
 
-	res, err := client.Discoverer.PartitionedMetadata(ctx, m.Cfg.Topic)
-	if err != nil {
-		log.Errorf("get partitioned metadata error:%s", err.Error())
-	}
-
-	partitionNums := res.GetPartitions()
-	if partitionNums > 1 {
-		var router pub.MessageRouter
-		if m.Cfg.Router == pub.UseSinglePartition {
-			router = &pub.SinglePartitionRouter{
-				Partition: partitionNums,
-			}
-		} else {
-			router = &pub.RoundRobinRouter{
-				Counter: 0,
-			}
-		}
-		return client.NewPartitionedProducer(ctx, m.Cfg.Topic, m.Cfg.Name, partitionNums, router)
-	}
-
 	// Create the topic producer. A blank producer name will
 	// cause Pulsar to generate a unique name.
 	return client.NewProducer(ctx, m.Cfg.Topic, m.Cfg.Name)
 }
 
 // Reconnect blocks while a new Producer is created.
-func (m *ManagedProducer) Reconnect(initial bool) pub.ProducerInterface {
+func (m *ManagedProducer) Reconnect(initial bool) *pub.Producer {
 	retryDelay := m.Cfg.InitialReconnectDelay
 
 	for attempt := 1; ; attempt++ {
