@@ -16,6 +16,7 @@ package manage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -109,6 +110,61 @@ func NewManagedConsumer(cp *ClientPool, cfg ConsumerConfig) *ManagedConsumer {
 	return &m
 }
 
+// NewManagedConsumer returns an initialized ManagedConsumer. It will create and recreate
+// a Consumer for the given discovery address and topic on a background goroutine.
+func NewPartitionManagedConsumer(cp *ClientPool, cfg ConsumerConfig) (*ManagedPartitionConsumer, error) {
+	cfg = cfg.SetDefaults()
+	ctx := context.Background()
+
+	mpc := ManagedPartitionConsumer{
+		clientPool: cp,
+		cfg:        cfg,
+		asyncErrs:  utils.AsyncErrors(cfg.Errs),
+		queue:      make(chan msg.Message, cfg.QueueSize),
+		waitc:      make(chan struct{}),
+		MConsumer:  make([]*ManagedConsumer, 10),
+	}
+
+	manageClient := cp.Get(cfg.ClientConfig)
+
+	client, err := manageClient.Get(ctx)
+	if err != nil {
+		log.Errorf("create client error:%s", err.Error())
+		return nil, err
+	}
+
+	res, err := client.Discoverer.PartitionedMetadata(ctx, cfg.Topic)
+	if err != nil {
+		log.Errorf("get partition metadata error:%s", err.Error())
+		return nil, err
+	}
+	numPartitions := res.GetPartitions()
+
+	for i := 0; uint32(i) < numPartitions; i++ {
+		cfg.Topic = fmt.Sprintf("%s-partition-%d", cfg.Topic, i)
+		mpc.MConsumer = append(mpc.MConsumer, NewManagedConsumer(cp, cfg))
+	}
+
+
+
+
+
+
+	return &mpc, nil
+}
+
+type ManagedPartitionConsumer struct {
+	clientPool *ClientPool
+	cfg        ConsumerConfig
+	asyncErrs  utils.AsyncErrors
+
+	queue chan msg.Message
+
+	mu        sync.RWMutex // protects following
+	waitc     chan struct{}
+	MConsumer []*ManagedConsumer
+}
+
 // ManagedConsumer wraps a Consumer with reconnect logic.
 type ManagedConsumer struct {
 	clientPool *ClientPool
@@ -121,6 +177,62 @@ type ManagedConsumer struct {
 	consumer sub.ConsumerInterface // either consumer is nil and wait isn't or vice versa
 	waitc    chan struct{}         // if consumer is nil, this will unblock when it's been re-set
 }
+
+
+func (m *ManagedPartitionConsumer) Receive(ctx context.Context) (msg.Message, error) {
+	for {
+
+
+
+
+
+		m.mu.RLock()
+		consumer := m.consumer
+		wait := m.waitc
+		m.mu.RUnlock()
+
+		if consumer == nil {
+			select {
+			case <-wait:
+				// a new consumer was established.
+				// Re-enter read-lock to obtain it.
+				continue
+			case <-ctx.Done():
+				return msg.Message{}, ctx.Err()
+			}
+		}
+
+		// TODO: determine when, if ever, to call
+		// consumer.RedeliverOverflow
+
+		if len(m.queue) < 1 {
+			if err := consumer.Flow(1); err != nil {
+				return msg.Message{}, err
+			}
+		}
+
+		select {
+		case msg, ok := <-m.queue:
+			if ok {
+				if consumer.GetUnAckTracker() != nil {
+					consumer.GetUnAckTracker().Add(msg.Msg.MessageId)
+				}
+				return msg, nil
+			}
+
+		case <-ctx.Done():
+			return msg.Message{}, ctx.Err()
+
+		case <-consumer.Closed():
+			return msg.Message{}, errors.New("consumer closed")
+
+		case <-consumer.ConnClosed():
+			return msg.Message{}, errors.New("consumer connection closed")
+		}
+
+	}
+}
+
 
 // Ack acquires a consumer and Sends an ACK message for the given message.
 func (m *ManagedConsumer) Ack(ctx context.Context, msg msg.Message) error {
@@ -326,13 +438,14 @@ func (m *ManagedConsumer) newConsumer(ctx context.Context) (sub.ConsumerInterfac
 	}
 
 	log.Info("create partition consumer...")
-	res, err := client.Discoverer.PartitionedMetadata(ctx, m.cfg.Topic)
-	if err != nil {
-		log.Errorf("get partitioned metadata error:%s", err.Error())
-	}
+	//res, err := client.Discoverer.PartitionedMetadata(ctx, m.cfg.Topic)
+	//if err != nil {
+	//	log.Errorf("get partitioned metadata error:%s", err.Error())
+	//}
+	//
+	//partitionNums := res.GetPartitions()
 
-	partitionNums := res.GetPartitions()
-
+	var partitionNums uint32
 	// Create the topic consumer. A non-blank consumer name is required.
 
 	switch m.cfg.SubMode {

@@ -36,7 +36,7 @@ func main() {
 		ClientConfig: manage.ClientConfig{
 			Addr: "localhost:6650",
 		},
-		Topic:            "hellotopic12",
+		Topic:            "multi-topic",
 		Name:             "sub-1",
 		SubMode:          manage.SubscriptionModeKeyShared,
 		AckTimeoutMillis: 10000,

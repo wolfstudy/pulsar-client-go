@@ -88,8 +88,6 @@ func (t *Pubsub) Subscribe(ctx context.Context, topic, subscribe string, subType
 	}
 
 	// wait for a response or timeout
-
-	fmt.Println("=======")
 	select {
 	case <-ctx.Done():
 		t.Subscriptions.DelConsumer(c)
@@ -102,7 +100,6 @@ func (t *Pubsub) Subscribe(ctx context.Context, topic, subscribe string, subType
 		//  - Error
 		switch msgType {
 		case api.BaseCommand_SUCCESS:
-			fmt.Println("------------")
 			return c, nil
 
 		case api.BaseCommand_ERROR:
