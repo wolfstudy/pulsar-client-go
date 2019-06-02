@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/wolfstudy/pulsar-client-go/core/manage"
 )
@@ -36,18 +37,57 @@ func main() {
 		ClientConfig: manage.ClientConfig{
 			Addr: "localhost:6650",
 		},
-		Topic:            "hellotopic12",
+		Topic:            "multi-topic-8",
 		Name:             "sub-1",
 		SubMode:          manage.SubscriptionModeKeyShared,
 		AckTimeoutMillis: 10000,
 	}
-	mp := manage.NewManagedConsumer(clientPool, consumerConf)
-	//messages := make(chan msg.Message, 16)
-	for i := 0; i < 10; i++ {
-		msg, err := mp.Receive(ctx)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println(string(msg.Payload))
+	//mp := manage.NewManagedConsumer(clientPool, consumerConf)
+	mp, err := manage.NewPartitionManagedConsumer(clientPool, consumerConf)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	//mp2 := manage.NewManagedConsumer(clientPool, consumerConf)
+
+	mp2, err := manage.NewPartitionManagedConsumer(clientPool, consumerConf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//messages := make(chan msg.Message, 16)
+	go func() {
+		for {
+			msg, err := mp2.Receive(ctx)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Printf("consumer2----> msg key is:%s  msg value is:%s\n", msg.Meta.GetPartitionKey(), string(msg.Payload))
+			err = mp2.Ack(ctx, msg)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			msg, err := mp.Receive(ctx)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Printf("consumer1----> msg key is:%s,  msg value is:%s\n", msg.Meta.GetPartitionKey(), string(msg.Payload))
+			err = mp.Ack(ctx, msg)
+
+
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}()
+
+	time.Sleep(time.Second * 1000)
+
 }

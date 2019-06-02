@@ -76,7 +76,7 @@ func TestManagedConsumer_Int_ReceiveAsync(t *testing.T) {
 	MORE:
 		for _, msg := range expected {
 			for {
-				if _, err := mp.Send(ctx, []byte(msg)); err != nil {
+				if _, err := mp.Send(ctx, []byte(msg),""); err != nil {
 					continue
 				}
 				continue MORE
@@ -180,7 +180,7 @@ func TestManagedConsumer_Int_ReceiveAsync_Multiple(t *testing.T) {
 	MORE:
 		for _, msg := range expected {
 			for {
-				if _, err := mp.Send(ctx, []byte(msg)); err != nil {
+				if _, err := mp.Send(ctx, []byte(msg),""); err != nil {
 					continue
 				}
 				continue MORE

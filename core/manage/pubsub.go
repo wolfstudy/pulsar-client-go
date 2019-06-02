@@ -23,7 +23,6 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/core/pub"
 	"github.com/wolfstudy/pulsar-client-go/core/sub"
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
-	"github.com/wolfstudy/pulsar-client-go/pkg/log"
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
@@ -88,8 +87,6 @@ func (t *Pubsub) Subscribe(ctx context.Context, topic, subscribe string, subType
 	}
 
 	// wait for a response or timeout
-
-	fmt.Println("=======")
 	select {
 	case <-ctx.Done():
 		t.Subscriptions.DelConsumer(c)
@@ -102,7 +99,6 @@ func (t *Pubsub) Subscribe(ctx context.Context, topic, subscribe string, subType
 		//  - Error
 		switch msgType {
 		case api.BaseCommand_SUCCESS:
-			fmt.Println("------------")
 			return c, nil
 
 		case api.BaseCommand_ERROR:
@@ -119,7 +115,7 @@ func (t *Pubsub) Subscribe(ctx context.Context, topic, subscribe string, subType
 	}
 }
 
-func (t *Pubsub) SubOnce(ctx context.Context, cfg ConsumerConfig, partitionName string, queue chan msg.Message) (*sub.Consumer, error) {
+func (t *Pubsub) SubscribeWithCfg(ctx context.Context, cfg ConsumerConfig, queue chan msg.Message) (*sub.Consumer, error) {
 	requestID := t.ReqID.Next()
 	consumerID := t.ConsumerID.Next()
 
@@ -129,7 +125,7 @@ func (t *Pubsub) SubOnce(ctx context.Context, cfg ConsumerConfig, partitionName 
 		Type: api.BaseCommand_SUBSCRIBE.Enum(),
 		Subscribe: &api.CommandSubscribe{
 			SubType:         &subType,
-			Topic:           proto.String(partitionName),
+			Topic:           proto.String(cfg.Topic),
 			Subscription:    proto.String(cfg.Name),
 			RequestId:       requestID,
 			ConsumerId:      consumerID,
@@ -144,10 +140,6 @@ func (t *Pubsub) SubOnce(ctx context.Context, cfg ConsumerConfig, partitionName 
 	defer cancel()
 
 	c := sub.NewConsumer(t.S, t.Dispatcher, cfg.Topic, t.ReqID, *consumerID, queue)
-
-	if cfg.AckTimeoutMillis != 0 {
-		c.UnAckTracker = sub.NewUnackedMessageTracker(c)
-	}
 
 	// the new subscription needs to be added to the map
 	// before sending the subscribe command, otherwise there'd
@@ -219,92 +211,6 @@ func (t *Pubsub) GetCfgMode(cfg ConsumerConfig) (api.CommandSubscribe_SubType, a
 }
 
 // TODO: replace Subscribe() method above
-func (t *Pubsub) SubscribeWithCfg(ctx context.Context, cfg ConsumerConfig, queue chan msg.Message, numPartitions uint32) (sub.ConsumerInterface, error) {
-	var i, j uint32
-	var err error
-
-	type ConsumerError struct {
-		err       error
-		partition uint32
-		cons      *sub.Consumer
-	}
-
-	ch := make(chan ConsumerError, numPartitions)
-	if numPartitions > 1 {
-		pc := &sub.PartitionConsumer{
-			Consumers:      make([]*sub.Consumer, numPartitions),
-			PartitionQueue: queue,
-		}
-		for i = 0; i < numPartitions; i++ {
-			subQueue := make(chan msg.Message)
-			partitionName := fmt.Sprintf("%s-partition-%d", cfg.Topic, i)
-			consumer, err := t.SubOnce(ctx, cfg, partitionName, subQueue)
-			if err != nil {
-				log.Errorf("create sub consumer error:%s", err.Error())
-				return nil, err
-			}
-
-			ch <- ConsumerError{
-				partition: i,
-				cons:      consumer,
-				err:       err,
-			}
-		}
-
-		for j = 0; j < numPartitions; j++ {
-			pe := <-ch
-			err = pe.err
-			pc.Consumers[j] = pe.cons
-		}
-
-		if err != nil {
-			// Since there were some failures, cleanup all the partitions that succeeded in creating the producers
-			for _, consumer := range pc.Consumers {
-				if consumer != nil {
-					_ = consumer.Close(ctx)
-				}
-			}
-			return nil, err
-		} else {
-			for _, subConsumer := range pc.Consumers {
-				if err := subConsumer.Flow(uint32(cfg.QueueSize)); err != nil {
-					return nil, err
-				}
-			}
-
-			log.Infof("wait message receive...")
-			// TODO: please fix me, fix receive logic, now once receive one message
-			go func() {
-				var counter int
-				for _, subConsumer := range pc.Consumers {
-					OUTER:
-					for {
-						select {
-						case tmpMsg, ok := <-subConsumer.Queue:
-							if ok {
-								counter++
-								queue <- tmpMsg
-								if counter >= cap(queue)/2 {
-									return
-								}
-							}
-							continue OUTER
-						}
-					}
-				}
-			}()
-
-			return pc, nil
-		}
-	}
-	consumer, err := t.SubOnce(ctx, cfg, cfg.Topic, queue)
-	if err != nil {
-		log.Errorf("create sub consumer error:%s", err.Error())
-		return nil, err
-	}
-
-	return consumer, nil
-}
 
 // Producer creates a new producer for the given topic and producerName.
 func (t *Pubsub) Producer(ctx context.Context, topic, producerName string) (*pub.Producer, error) {
@@ -369,55 +275,5 @@ func (t *Pubsub) Producer(ctx context.Context, topic, producerName string) (*pub
 
 			return nil, utils.NewUnexpectedErrMsg(msgType, *requestID)
 		}
-	}
-}
-
-func (t *Pubsub) PartitionedProducer(ctx context.Context, topic, producerName string,
-	partitionNums uint32, router pub.MessageRouter) (partitionProducer *pub.PartitionedProducer, err error) {
-	var i, j uint32
-
-	type ProducerError struct {
-		partition uint32
-		prod      *pub.Producer
-		err       error
-	}
-
-	pp := &pub.PartitionedProducer{
-		Topic:         topic,
-		NumPartitions: partitionNums,
-		Router:        router,
-		Producers:     make([]*pub.Producer, partitionNums, partitionNums),
-	}
-
-	c := make(chan ProducerError, partitionNums)
-	for i = 0; i < partitionNums; i++ {
-		partitionName := fmt.Sprintf("%s-partition-%d", topic, i)
-		log.Infof("create producer name is: %s", partitionName)
-		producer, err := t.Producer(ctx, partitionName, producerName)
-		c <- ProducerError{
-			partition: i,
-			prod:      producer,
-			err:       err,
-		}
-	}
-
-	for j = 0; j < partitionNums; j++ {
-		pe := <-c
-		err = pe.err
-		pp.Producers[j] = pe.prod
-	}
-
-	if err != nil {
-		// Since there were some failures, cleanup all the partitions that succeeded in creating the producers
-		for _, producer := range pp.Producers {
-			if producer != nil {
-				_ = producer.Close(ctx)
-			}
-		}
-		log.Errorf("create partition producer error: %s", err.Error())
-
-		return nil, err
-	} else {
-		return pp, nil
 	}
 }
