@@ -216,8 +216,7 @@ func (mpc *ManagedPartitionConsumer) Receive(ctx context.Context) (msg.Message, 
 			if ok {
 				if mpc.UnAckTracker != nil {
 
-					//log.Warnf("receive add untrack: key: %s", tmpMsg.Meta.GetPartitionKey(), string(tmpMsg.Payload))
-
+					log.Debugf("receive add untrack: key: %s", tmpMsg.Meta.GetPartitionKey(), string(tmpMsg.Payload))
 					mpc.UnAckTracker.Add(tmpMsg.Msg.GetMessageId())
 				}
 				return tmpMsg, nil
@@ -232,7 +231,7 @@ func (mpc *ManagedPartitionConsumer) Receive(ctx context.Context) (msg.Message, 
 // Ack acquires a consumer and Sends an ACK message for the given message.
 func (mpc *ManagedPartitionConsumer) Ack(ctx context.Context, msg msg.Message) error {
 	if mpc.UnAckTracker != nil {
-		//log.Warnf("ack remove  untrack: key: %s", msg.Meta.GetPartitionKey(), string(msg.Payload))
+		log.Debugf("ack remove untrack: key: %s", msg.Meta.GetPartitionKey(), string(msg.Payload))
 		mpc.UnAckTracker.Remove(msg.Msg.GetMessageId())
 	}
 	return mpc.MConsumer[msg.Msg.GetMessageId().GetPartition()].Ack(ctx, msg)

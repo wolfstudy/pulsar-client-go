@@ -140,7 +140,7 @@ func (t *UnackedMessageTracker) Start(ackTimeoutMillis int64) {
 			select {
 			case tick := <-t.timeout.C:
 				if t.isAckTimeout() {
-					log.Warnf(" %d messages have timed-out", t.oldOpenSet.Cardinality())
+					log.Debugf(" %d messages have timed-out", t.oldOpenSet.Cardinality())
 					messageIds := make([]*api.MessageIdData, 0)
 
 					t.oldOpenSet.Each(func(i interface{}) bool {
@@ -148,7 +148,7 @@ func (t *UnackedMessageTracker) Start(ackTimeoutMillis int64) {
 						return false
 					})
 
-					log.Infof("messageID length is:%d", len(messageIds))
+					log.Debugf("messageID length is:%d", len(messageIds))
 
 					t.oldOpenSet.Clear()
 
@@ -160,7 +160,7 @@ func (t *UnackedMessageTracker) Start(ackTimeoutMillis int64) {
 								MessageIds: messageIds,
 							},
 						}
-						log.Infof("consumer:%v redeliver messages num:%d", t.consumer.consumer, len(messageIds))
+						log.Debugf("consumer:%v redeliver messages num:%d", t.consumer.consumer, len(messageIds))
 						if err := t.consumer.consumer.S.SendSimpleCmd(cmd); err != nil {
 							log.Errorf("send Consumer redeliver cmd error:%s", err.Error())
 							return
@@ -180,7 +180,7 @@ func (t *UnackedMessageTracker) Start(ackTimeoutMillis int64) {
 										MessageIds: messageIdsMap[int32(index)],
 									},
 								}
-								log.Infof("index value: %d, partition name is:%s, messageID length:%d",
+								log.Debugf("index value: %d, partition name is:%s, messageID length:%d",
 									index, t.partitionConsumer.MConsumer[index].consumer.Topic, len(messageIdsMap[int32(index)]))
 								if err := subConsumer.consumer.S.SendSimpleCmd(cmd); err != nil {
 									log.Errorf("send partition subConsumer redeliver cmd error:%s", err.Error())
