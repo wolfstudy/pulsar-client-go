@@ -168,21 +168,6 @@ func NewPartitionManagedConsumer(cp *ClientPool, cfg ConsumerConfig) (*ManagedPa
 	return mpc, nil
 }
 
-func (mpc *ManagedPartitionConsumer) getMessageFromSubConsumer(ctx context.Context) chan msg.Message {
-	for i := 0; i < len(mpc.MConsumer); i++ {
-		go func(index int) {
-			log.Infof("receive message form index:%d", index)
-			err := mpc.MConsumer[index].ReceiveAsync(ctx, mpc.queue)
-			if err != nil {
-				log.Errorf("receive message error:%s", err.Error())
-				return
-			}
-		}(i)
-	}
-	return mpc.queue
-
-}
-
 type ManagedPartitionConsumer struct {
 	clientPool *ClientPool
 	cfg        ConsumerConfig
@@ -194,51 +179,6 @@ type ManagedPartitionConsumer struct {
 	waitc        chan struct{}
 	MConsumer    []*ManagedConsumer
 	UnAckTracker *UnackedMessageTracker
-}
-
-// NewManagedConsumer returns an initialized ManagedConsumer. It will create and recreate
-// a Consumer for the given discovery address and topic on a background goroutine.
-func NewPartitionManagedConsumer(cp *ClientPool, cfg ConsumerConfig) (*ManagedPartitionConsumer, error) {
-	cfg = cfg.SetDefaults()
-	ctx := context.Background()
-
-	mpc := ManagedPartitionConsumer{
-		clientPool: cp,
-		cfg:        cfg,
-		asyncErrs:  utils.AsyncErrors(cfg.Errs),
-		queue:      make(chan msg.Message, cfg.QueueSize),
-		waitc:      make(chan struct{}),
-		MConsumer:  make([]*ManagedConsumer, 0),
-	}
-
-	if cfg.SubMode == SubscriptionModeShard || cfg.SubMode == SubscriptionModeKeyShared {
-		mpc.UnAckTracker = NewUnackedMessageTracker()
-		mpc.UnAckTracker.Start(int64(cfg.AckTimeoutMillis))
-	}
-
-	manageClient := cp.Get(cfg.ClientConfig)
-
-	client, err := manageClient.Get(ctx)
-	if err != nil {
-		log.Errorf("create client error:%s", err.Error())
-		return nil, err
-	}
-
-	res, err := client.Discoverer.PartitionedMetadata(ctx, cfg.Topic)
-	if err != nil {
-		log.Errorf("get partition metadata error:%s", err.Error())
-		return nil, err
-	}
-	numPartitions := res.GetPartitions()
-	topicName := cfg.Topic
-	for i := 0; uint32(i) < numPartitions; i++ {
-		cfg.Topic = fmt.Sprintf("%s-partition-%d", topicName, i)
-		mpc.MConsumer = append(mpc.MConsumer, NewManagedConsumer(cp, cfg))
-	}
-
-	go mpc.getMessageFromSubConsumer(ctx)
-
-	return &mpc, nil
 }
 
 func (mpc *ManagedPartitionConsumer) getMessageFromSubConsumer(ctx context.Context) chan msg.Message {
@@ -254,19 +194,6 @@ func (mpc *ManagedPartitionConsumer) getMessageFromSubConsumer(ctx context.Conte
 	}
 	return mpc.queue
 
-}
-
-type ManagedPartitionConsumer struct {
-	clientPool *ClientPool
-	cfg        ConsumerConfig
-	asyncErrs  utils.AsyncErrors
-
-	queue chan msg.Message
-
-	mu           sync.RWMutex // protects following
-	waitc        chan struct{}
-	MConsumer    []*ManagedConsumer
-	UnAckTracker *UnackedMessageTracker
 }
 
 // ManagedConsumer wraps a Consumer with reconnect logic.

@@ -168,7 +168,7 @@ func (m *ManagedProducer) Send(ctx context.Context, payload []byte, msgKey strin
 
 func (m *ManagedPartitionProducer) Send(ctx context.Context, payload []byte, msgKey string) (*api.CommandSendReceipt, error) {
 	partition := m.MessageRouter.ChoosePartition(msgKey, m.numPartitions)
-	log.Infof("choose partition is: %d, msg payload is: %s, msg key is: %s", partition, string(payload), msgKey)
+	log.Debugf("choose partition is: %d, msg payload is: %s, msg key is: %s", partition, string(payload), msgKey)
 
 	return m.MProducer[partition].Send(ctx, payload, msgKey)
 }
