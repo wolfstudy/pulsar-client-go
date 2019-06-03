@@ -37,10 +37,12 @@ func main() {
 		ClientConfig: manage.ClientConfig{
 			Addr: "localhost:6650",
 		},
-		Topic:            "multi-topic-8",
-		Name:             "sub-1",
+
+		Topic: "multi-topic-9",
+		Name:  "sub-2",
 		SubMode:          manage.SubscriptionModeKeyShared,
-		AckTimeoutMillis: 10000,
+		//SubMode:          manage.SubscriptionModeShard,
+		AckTimeoutMillis: 1000 * 5,
 	}
 	//mp := manage.NewManagedConsumer(clientPool, consumerConf)
 	mp, err := manage.NewPartitionManagedConsumer(clientPool, consumerConf)
@@ -64,10 +66,11 @@ func main() {
 			}
 
 			fmt.Printf("consumer2----> msg key is:%s  msg value is:%s\n", msg.Meta.GetPartitionKey(), string(msg.Payload))
-			err = mp2.Ack(ctx, msg)
-			if err != nil {
-				log.Fatal(err)
-			}
+			//err = mp2.Ack(ctx, msg)
+			//if err != nil {
+			//	log.Fatal(err)
+			//}
+
 		}
 	}()
 
@@ -79,12 +82,11 @@ func main() {
 			}
 
 			fmt.Printf("consumer1----> msg key is:%s,  msg value is:%s\n", msg.Meta.GetPartitionKey(), string(msg.Payload))
-			err = mp.Ack(ctx, msg)
-
-
-			if err != nil {
-				log.Fatal(err)
-			}
+			//err = mp.Ack(ctx, msg)
+			//
+			//if err != nil {
+			//	log.Fatal(err)
+			//}
 		}
 	}()
 

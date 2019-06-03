@@ -33,9 +33,10 @@ type UnackedMessageTracker struct {
 	cmu               sync.RWMutex // protects following
 	currentSet        set.Set
 	oldOpenSet        set.Set
-	timeout           time.Ticker
-	consumer          ManagedConsumer
-	partitionConsumer ManagedPartitionConsumer
+
+	timeout           *time.Ticker
+	consumer          *ManagedConsumer
+	partitionConsumer *ManagedPartitionConsumer
 }
 
 func NewUnackedMessageTracker() *UnackedMessageTracker {
@@ -133,36 +134,67 @@ func (t *UnackedMessageTracker) Start(ackTimeoutMillis int64) {
 	t.cmu.Lock()
 	defer t.cmu.Unlock()
 
-	t.timeout = *time.NewTicker((time.Duration(ackTimeoutMillis)) * time.Millisecond)
+	t.timeout = time.NewTicker((time.Duration(ackTimeoutMillis)) * time.Millisecond)
 
 	go func() {
-		for tick := range t.timeout.C {
-			if t.isAckTimeout() {
-				log.Warn("%d messages have timed - out", t.oldOpenSet.Cardinality())
-				messageIds := make([]*api.MessageIdData, t.oldOpenSet.Cardinality())
+		for {
+			select {
+			case tick := <-t.timeout.C:
+				if t.isAckTimeout() {
+					log.Debugf(" %d messages have timed-out", t.oldOpenSet.Cardinality())
+					messageIds := make([]*api.MessageIdData, 0)
 
-				t.oldOpenSet.Each(func(i interface{}) bool {
-					messageIds = append(messageIds, i.(*api.MessageIdData))
-					return true
-				})
+					t.oldOpenSet.Each(func(i interface{}) bool {
+						messageIds = append(messageIds, i.(*api.MessageIdData))
+						return false
+					})
 
-				t.oldOpenSet.Clear()
+					log.Debugf("messageID length is:%d", len(messageIds))
 
-				cmd := api.BaseCommand{
-					Type: api.BaseCommand_REDELIVER_UNACKNOWLEDGED_MESSAGES.Enum(),
-					RedeliverUnacknowledgedMessages: &api.CommandRedeliverUnacknowledgedMessages{
-						ConsumerId: proto.Uint64(t.consumer.consumer.ConsumerID),
-						MessageIds: messageIds,
-					},
+					t.oldOpenSet.Clear()
+
+					if t.consumer != nil {
+						cmd := api.BaseCommand{
+							Type: api.BaseCommand_REDELIVER_UNACKNOWLEDGED_MESSAGES.Enum(),
+							RedeliverUnacknowledgedMessages: &api.CommandRedeliverUnacknowledgedMessages{
+								ConsumerId: proto.Uint64(t.consumer.consumer.ConsumerID),
+								MessageIds: messageIds,
+							},
+						}
+						log.Debugf("consumer:%v redeliver messages num:%d", t.consumer.consumer, len(messageIds))
+						if err := t.consumer.consumer.S.SendSimpleCmd(cmd); err != nil {
+							log.Errorf("send Consumer redeliver cmd error:%s", err.Error())
+							return
+						}
+					} else if t.partitionConsumer != nil {
+						messageIdsMap := make(map[int32][]*api.MessageIdData)
+						for _, msgID := range messageIds {
+							messageIdsMap[msgID.GetPartition()] = append(messageIdsMap[msgID.GetPartition()], msgID)
+						}
+
+						for index, subConsumer := range t.partitionConsumer.MConsumer {
+							if messageIdsMap[int32(index)] != nil {
+								cmd := api.BaseCommand{
+									Type: api.BaseCommand_REDELIVER_UNACKNOWLEDGED_MESSAGES.Enum(),
+									RedeliverUnacknowledgedMessages: &api.CommandRedeliverUnacknowledgedMessages{
+										ConsumerId: proto.Uint64(subConsumer.consumer.ConsumerID),
+										MessageIds: messageIdsMap[int32(index)],
+									},
+								}
+								log.Debugf("index value: %d, partition name is:%s, messageID length:%d",
+									index, t.partitionConsumer.MConsumer[index].consumer.Topic, len(messageIdsMap[int32(index)]))
+								if err := subConsumer.consumer.S.SendSimpleCmd(cmd); err != nil {
+									log.Errorf("send partition subConsumer redeliver cmd error:%s", err.Error())
+									return
+								}
+							}
+						}
+					}
 				}
-
-				if err := t.consumer.consumer.S.SendSimpleCmd(cmd); err != nil {
-					return
-				}
+				log.Debug("Tick at ", tick)
 			}
 
 			t.toggle()
-			log.Debug("Tick at ", tick)
 		}
 	}()
 }
