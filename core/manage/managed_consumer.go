@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
 	"sync"
 	"time"
 
@@ -131,7 +130,6 @@ func NewPartitionManagedConsumer(cp *ClientPool, cfg ConsumerConfig) (*ManagedPa
 		cfg:        cfg,
 		asyncErrs:  utils.AsyncErrors(cfg.Errs),
 		queue:      make(chan msg.Message, cfg.QueueSize),
-		waitc:      make(chan struct{}),
 		MConsumer:  make([]*ManagedConsumer, 0),
 	}
 
@@ -176,7 +174,6 @@ type ManagedPartitionConsumer struct {
 	queue chan msg.Message
 
 	mu           sync.RWMutex // protects following
-	waitc        chan struct{}
 	MConsumer    []*ManagedConsumer
 	UnAckTracker *UnackedMessageTracker
 }
@@ -595,6 +592,13 @@ func (m *ManagedConsumer) Unsubscribe(ctx context.Context) error {
 	}
 }
 
+func (mpc *ManagedPartitionConsumer) Unsubscribe(ctx context.Context) error {
+	for _, consumer := range mpc.MConsumer {
+		return consumer.Unsubscribe(ctx)
+	}
+	return nil
+}
+
 // Monitor a scoped deferrable lock
 func (m *ManagedConsumer) Monitor() func() {
 	m.mu.Lock()
@@ -608,4 +612,21 @@ func (m *ManagedConsumer) Close(ctx context.Context) error {
 		m.UnAckTracker.Stop()
 	}
 	return m.consumer.Close(ctx)
+}
+
+// Close consumer
+func (mpc *ManagedPartitionConsumer) Close(ctx context.Context) error {
+	var errMsg string
+	for _, consumer := range mpc.MConsumer {
+		if mpc.UnAckTracker != nil {
+			mpc.UnAckTracker.Stop()
+		}
+		if err := consumer.Close(ctx); err != nil {
+			errMsg += fmt.Sprintf("topic %s, name %s: %s ", consumer.cfg.Topic, consumer.cfg.Name, err.Error())
+		}
+	}
+	if errMsg != "" {
+		return errors.New(errMsg)
+	}
+	return nil
 }

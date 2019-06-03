@@ -20,6 +20,7 @@
 package pub
 
 import (
+	"github.com/wolfstudy/pulsar-client-go/pkg/log"
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
@@ -73,11 +74,15 @@ func hashFunc(value string) uint32 {
 }
 
 func signSafeMod(dividend uint32, divisor uint32) uint32 {
-	mod := dividend % divisor
-	if mod < 0 {
-		mod += divisor
+	if divisor != 0 {
+		mod := dividend % divisor
+		if mod < 0 {
+			mod += divisor
+		}
+		return mod
 	}
-	return mod
+	log.Errorf("the partition numbers:%d is zero, please check.", divisor)
+	return 0
 }
 
 type HashingScheme int
@@ -97,4 +102,3 @@ func getHashingFunction(s HashingScheme) func(string) uint32 {
 		return utils.JavaStringHash
 	}
 }
-

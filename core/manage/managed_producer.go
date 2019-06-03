@@ -15,6 +15,7 @@ package manage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -280,4 +281,17 @@ func (m *ManagedProducer) Monitor() func() {
 func (m *ManagedProducer) Close(ctx context.Context) error {
 	defer m.Monitor()()
 	return m.Producer.Close(ctx)
+}
+
+func (m *ManagedPartitionProducer) Close(ctx context.Context) error {
+	var errMsg string
+	for _, producer := range m.MProducer {
+		if err := producer.Close(ctx); err != nil {
+			errMsg += fmt.Sprintf("topic %s, name %s: %s ", producer.Cfg.Topic, producer.Cfg.Name, err.Error())
+		}
+	}
+	if errMsg != "" {
+		return errors.New(errMsg)
+	}
+	return nil
 }

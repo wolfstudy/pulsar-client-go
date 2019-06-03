@@ -38,7 +38,7 @@ func main() {
 			Addr: "localhost:6650",
 		},
 
-		Topic:              "multi-topic-9",
+		Topic: "multi-topic-10",
 
 		Router:             pub.RoundRobinDistribution,
 		NewProducerTimeout: time.Second * 5,
@@ -51,8 +51,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-
-	for i := 0; i < 200; i++ {
+	for i := 0; i < 50; i++ {
 		payload := fmt.Sprintf("hello-%d", i)
 		msgKey := fmt.Sprintf("key-%d", i%7)
 		ss, err := mp.Send(ctx, []byte(payload), msgKey)
