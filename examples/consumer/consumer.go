@@ -37,6 +37,7 @@ func main() {
 		ClientConfig: manage.ClientConfig{
 			Addr: "localhost:6650",
 		},
+
 		Topic: "multi-topic-9",
 		Name:  "sub-2",
 		SubMode:          manage.SubscriptionModeKeyShared,
@@ -58,7 +59,6 @@ func main() {
 
 	//messages := make(chan msg.Message, 16)
 	go func() {
-
 		for {
 			msg, err := mp2.Receive(ctx)
 			if err != nil {
@@ -70,6 +70,7 @@ func main() {
 			//if err != nil {
 			//	log.Fatal(err)
 			//}
+
 		}
 	}()
 

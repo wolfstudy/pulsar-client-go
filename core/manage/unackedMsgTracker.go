@@ -33,6 +33,7 @@ type UnackedMessageTracker struct {
 	cmu               sync.RWMutex // protects following
 	currentSet        set.Set
 	oldOpenSet        set.Set
+
 	timeout           *time.Ticker
 	consumer          *ManagedConsumer
 	partitionConsumer *ManagedPartitionConsumer
