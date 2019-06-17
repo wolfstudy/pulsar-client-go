@@ -61,9 +61,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 	}
 
 	handler := func(f frame.Frame) {
-		// All message types can be handled in
-		// parallel, since their ordering should not matter
-		go c.handleFrame(f)
+		c.handleFrame(f)
 	}
 
 	go func() {
