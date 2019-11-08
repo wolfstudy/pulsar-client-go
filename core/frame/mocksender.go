@@ -29,14 +29,14 @@ type CmdSender interface {
 
 // MockSender implements the sender interface
 type MockSender struct {
-	Mu      sync.Mutex // protects following
+	mu      sync.Mutex // protects following
 	Frames  []Frame
-	Closedc chan struct{}
+	closedc chan struct{}
 }
 
 func (m *MockSender) GetFrames() []Frame {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	cp := make([]Frame, len(m.Frames))
 	copy(cp, m.Frames)
@@ -45,8 +45,8 @@ func (m *MockSender) GetFrames() []Frame {
 }
 
 func (m *MockSender) SendSimpleCmd(cmd api.BaseCommand) error {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	m.Frames = append(m.Frames, Frame{
 		BaseCmd: &cmd,
@@ -56,8 +56,8 @@ func (m *MockSender) SendSimpleCmd(cmd api.BaseCommand) error {
 }
 
 func (m *MockSender) SendPayloadCmd(cmd api.BaseCommand, metadata api.MessageMetadata, payload []byte) error {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	m.Frames = append(m.Frames, Frame{
 		BaseCmd:  &cmd,
@@ -69,5 +69,5 @@ func (m *MockSender) SendPayloadCmd(cmd api.BaseCommand, metadata api.MessageMet
 }
 
 func (m *MockSender) Closed() <-chan struct{} {
-	return m.Closedc
+	return m.closedc
 }

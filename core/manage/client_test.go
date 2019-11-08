@@ -62,7 +62,7 @@ func TestClient_Int_PubSub(t *testing.T) {
 		t.Logf("PONG received")
 	}
 
-	topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", utils.RandString(32))
+	topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", RandString(32))
 	t.Logf("test topic: %q", topic)
 
 	topicResp, err := c.LookupTopic(ctx, topic, false)
@@ -83,7 +83,7 @@ func TestClient_Int_PubSub(t *testing.T) {
 
 	// create multiple consumers
 	consumers := make([]*sub.Consumer, 32)
-	subName := utils.RandString(16)
+	subName := RandString(16)
 	for i := range consumers {
 		name := fmt.Sprintf("%s-%d", subName, i)
 		consumers[i], err = c.NewExclusiveConsumer(ctx, topic, name, false, make(chan msg.Message, N))
@@ -208,7 +208,7 @@ func TestClient_Int_ServerInitiatedTopicClose(t *testing.T) {
 		t.Logf("PONG received")
 	}
 
-	topicName := fmt.Sprintf("test-%s", utils.RandString(32))
+	topicName := fmt.Sprintf("test-%s", RandString(32))
 	topic := fmt.Sprintf("persistent://sample/standalone/ns1/%s", topicName)
 	t.Logf("topic: %q", topic)
 
@@ -221,13 +221,13 @@ func TestClient_Int_ServerInitiatedTopicClose(t *testing.T) {
 	}
 	t.Log(topicResp.String())
 
-	subscriptionName := utils.RandString(32)
+	subscriptionName := RandString(32)
 	topicConsumer, err := c.NewExclusiveConsumer(ctx, topic, subscriptionName, false, make(chan msg.Message, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	producerName := utils.RandString(32)
+	producerName := RandString(32)
 	topicProducer, err := c.NewProducer(ctx, topic, producerName)
 	if err != nil {
 		t.Fatal(err)
@@ -327,7 +327,7 @@ func TestClient_Int_Unsubscribe(t *testing.T) {
 					t.Logf("PONG received")
 				}
 
-				topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", utils.RandString(32))
+				topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", RandString(32))
 				t.Logf("test topic: %q", topic)
 
 				topicResp, err := c.LookupTopic(ctx, topic, false)
@@ -351,7 +351,7 @@ func TestClient_Int_Unsubscribe(t *testing.T) {
 				}
 				t.Log(topicResp.String())
 
-				topicConsumer, err := c.NewExclusiveConsumer(ctx, topic, utils.RandString(32), false, make(chan msg.Message, 1))
+				topicConsumer, err := c.NewExclusiveConsumer(ctx, topic, RandString(32), false, make(chan msg.Message, 1))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -400,7 +400,7 @@ func TestClient_Int_RedeliverOverflow(t *testing.T) {
 		t.Logf("PONG received")
 	}
 
-	topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", utils.RandString(32))
+	topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", RandString(32))
 	t.Logf("test topic: %q", topic)
 
 	topicResp, err := c.LookupTopic(ctx, topic, false)
@@ -426,7 +426,7 @@ func TestClient_Int_RedeliverOverflow(t *testing.T) {
 	}
 
 	// create single consumer with buffer size 1
-	cs, err := c.NewSharedConsumer(ctx, topic, utils.RandString(16), make(chan msg.Message, 1))
+	cs, err := c.NewSharedConsumer(ctx, topic, RandString(16), make(chan msg.Message, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -532,7 +532,7 @@ func TestClient_Int_RedeliverAll(t *testing.T) {
 		t.Logf("PONG received")
 	}
 
-	topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", utils.RandString(32))
+	topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", RandString(32))
 	t.Logf("test topic: %q", topic)
 
 	topicResp, err := c.LookupTopic(ctx, topic, false)
@@ -558,7 +558,7 @@ func TestClient_Int_RedeliverAll(t *testing.T) {
 	}
 
 	// create single consumer with buffer size N
-	cs, err := c.NewExclusiveConsumer(ctx, topic, utils.RandString(16), false, make(chan msg.Message, N))
+	cs, err := c.NewExclusiveConsumer(ctx, topic, RandString(16), false, make(chan msg.Message, N))
 	if err != nil {
 		t.Fatal(err)
 	}

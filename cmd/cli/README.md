@@ -15,7 +15,7 @@ Usage of ./cli:
   -producer
     	if true, produce messages, otherwise consume
   -pulsar string
-    	pulsar address (default "localhost:6650")
+    	pulsar address. May start with pulsar:// or pulsar+ssl:// (default "localhost:6650")
   -rate duration
     	rate at which to send messages (default 1s)
   -shared

@@ -23,8 +23,8 @@ import (
 // NewPinger returns a ready-to-use pinger.
 func NewPinger(s frame.CmdSender, dispatcher *frame.Dispatcher) *Pinger {
 	return &Pinger{
-		S:          s,
-		Dispatcher: dispatcher,
+		s:          s,
+		dispatcher: dispatcher,
 	}
 }
 
@@ -36,15 +36,15 @@ func NewPinger(s frame.CmdSender, dispatcher *frame.Dispatcher) *Pinger {
 //
 // https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#KeepAlive-53utwq
 type Pinger struct {
-	S          frame.CmdSender
-	Dispatcher *frame.Dispatcher // used to manage the request/response state
+	s          frame.CmdSender
+	dispatcher *frame.Dispatcher // used to manage the request/response state
 }
 
 // Ping sends a PING message to the Pulsar server, then
 // waits for either a PONG response or the context to
 // timeout.
 func (p *Pinger) Ping(ctx context.Context) error {
-	resp, cancel, err := p.Dispatcher.RegisterGlobal()
+	resp, cancel, err := p.dispatcher.RegisterGlobal()
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (p *Pinger) Ping(ctx context.Context) error {
 		Ping: &api.CommandPing{},
 	}
 
-	if err := p.S.SendSimpleCmd(cmd); err != nil {
+	if err := p.s.SendSimpleCmd(cmd); err != nil {
 		return err
 	}
 
@@ -80,5 +80,5 @@ func (p *Pinger) HandlePing(msgType api.BaseCommand_Type, msg *api.CommandPing) 
 		Pong: &api.CommandPong{},
 	}
 
-	return p.S.SendSimpleCmd(cmd)
+	return p.s.SendSimpleCmd(cmd)
 }

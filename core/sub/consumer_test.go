@@ -178,7 +178,7 @@ func TestConsumer_handleMessage_fullQueue(t *testing.T) {
 			t.Fatalf("handleMessage() err = %v; expected nil for msg number %d and queueSize %d", err, i+1, queueSize)
 		}
 
-		if got, expected := len(c.Overflow), 0; got != expected {
+		if got, expected := len(c.overflow), 0; got != expected {
 			t.Fatalf("len(consumer overflow buffer) = %d; expected %d", got, expected)
 		}
 	}
@@ -191,7 +191,7 @@ func TestConsumer_handleMessage_fullQueue(t *testing.T) {
 	}
 	t.Logf("handleMessage() err (expected) = %q for msg number %d and queueSize %d", err, queueSize+1, queueSize)
 
-	if got, expected := len(c.Overflow), 1; got != expected {
+	if got, expected := len(c.overflow), 1; got != expected {
 		t.Fatalf("len(consumer overflow buffer) = %d; expected %d", got, expected)
 	}
 
@@ -302,7 +302,7 @@ func TestConsumer_RedeliverOverflow(t *testing.T) {
 		entryID := uint64(i)
 		// the msg.MessageIdData must be unique for each msg.Message,
 		// otherwise the consumer will consider them duplicates
-		// and not store them in Overflow
+		// and not store them in overflow
 		f := frame.Frame{
 			BaseCmd: &api.BaseCommand{
 				Type: api.BaseCommand_MESSAGE.Enum(),

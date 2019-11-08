@@ -60,10 +60,10 @@ func TestConn_Read(t *testing.T) {
 	}
 
 	c := Conn{
-		Rc: &mockReadCloser{
+		rc: &mockReadCloser{
 			Reader: &b,
 		},
-		Closedc: make(chan struct{}),
+		closedc: make(chan struct{}),
 	}
 
 	var gotFrames []frame.Frame
@@ -87,10 +87,10 @@ func TestConn_Read(t *testing.T) {
 
 func TestConn_Close(t *testing.T) {
 	c := Conn{
-		Rc: &mockReadCloser{
+		rc: &mockReadCloser{
 			Reader: new(bytes.Buffer),
 		},
-		Closedc: make(chan struct{}),
+		closedc: make(chan struct{}),
 	}
 
 	// no-op
@@ -116,8 +116,8 @@ func TestConn_GarbageInput(t *testing.T) {
 		Reader: bytes.NewBufferString("this isn't a valid Pulsar frame"),
 	}
 	c := Conn{
-		Rc:      mrc,
-		Closedc: make(chan struct{}),
+		rc:      mrc,
+		closedc: make(chan struct{}),
 	}
 
 	var gotFrames []frame.Frame
@@ -164,8 +164,8 @@ func TestConn_TimeoutReader(t *testing.T) {
 		Reader: iotest.TimeoutReader(&b),
 	}
 	c := Conn{
-		Rc:      mrc,
-		Closedc: make(chan struct{}),
+		rc:      mrc,
+		closedc: make(chan struct{}),
 	}
 
 	var gotFrames []frame.Frame
@@ -205,10 +205,10 @@ func TestConn_Read_SlowSrc(t *testing.T) {
 	c := Conn{
 		// OneByteReader returns a single byte per read,
 		// regardless of how big its input buffer is.
-		Rc: &mockReadCloser{
+		rc: &mockReadCloser{
 			Reader: iotest.OneByteReader(&b),
 		},
-		Closedc: make(chan struct{}),
+		closedc: make(chan struct{}),
 	}
 
 	var gotFrames []frame.Frame
@@ -267,10 +267,10 @@ func TestConn_Read_MutliFrame(t *testing.T) {
 	}
 
 	c := Conn{
-		Rc: &mockReadCloser{
+		rc: &mockReadCloser{
 			Reader: &b,
 		},
-		Closedc: make(chan struct{}),
+		closedc: make(chan struct{}),
 	}
 
 	var gotFrames []frame.Frame
@@ -326,11 +326,11 @@ func TestConn_writeFrame(t *testing.T) {
 	// same buffer is used for reads and writes
 	var rw bytes.Buffer
 	c := Conn{
-		Rc: &mockReadCloser{
+		rc: &mockReadCloser{
 			Reader: &rw,
 		},
-		W:       &rw,
-		Closedc: make(chan struct{}),
+		w:       &rw,
+		closedc: make(chan struct{}),
 	}
 
 	// write the frames in parallel (order will

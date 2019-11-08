@@ -26,10 +26,15 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 )
 
+const (
+	SchemaPulsar    = "pulsar://"
+	SchemaPulsarTSL = "pulsar+ssl://"
+)
+
 // NewTCPConn creates a core using a TCPv4 connection to the given
 // (pulsar server) address.
 func NewTCPConn(addr string, timeout time.Duration) (*Conn, error) {
-	addr = strings.TrimPrefix(addr, "pulsar://")
+	addr = strings.TrimPrefix(addr, SchemaPulsar)
 
 	d := net.Dialer{
 		DualStack: false,
@@ -41,16 +46,17 @@ func NewTCPConn(addr string, timeout time.Duration) (*Conn, error) {
 	}
 
 	return &Conn{
-		Rc:      c,
-		W:       c,
-		Closedc: make(chan struct{}),
+		rc:      c,
+		w:       c,
+		closedc: make(chan struct{}),
 	}, nil
 }
 
 // NewTLSConn creates a core using a TCPv4+TLS connection to the given
 // (pulsar server) address.
 func NewTLSConn(addr string, tlsCfg *tls.Config, timeout time.Duration) (*Conn, error) {
-	addr = strings.TrimPrefix(addr, "pulsar://")
+	addr = strings.TrimPrefix(addr, SchemaPulsar)
+	addr = strings.TrimPrefix(addr, SchemaPulsarTSL)
 
 	d := net.Dialer{
 		DualStack: false,
@@ -62,23 +68,23 @@ func NewTLSConn(addr string, tlsCfg *tls.Config, timeout time.Duration) (*Conn, 
 	}
 
 	return &Conn{
-		Rc:      c,
-		W:       c,
-		Closedc: make(chan struct{}),
+		rc:      c,
+		w:       c,
+		closedc: make(chan struct{}),
 	}, nil
 }
 
 // Conn is responsible for writing and reading
 // Frames to and from the underlying connection (r and w).
 type Conn struct {
-	Rc io.ReadCloser
+	rc io.ReadCloser
 
-	Wmu sync.Mutex // protects w to ensure frames aren't interleaved
-	W   io.Writer
+	wmu sync.Mutex // protects w to ensure frames aren't interleaved
+	w   io.Writer
 
-	Cmu      sync.Mutex // protects following
-	IsClosed bool
-	Closedc  chan struct{}
+	cmu      sync.Mutex // protects following
+	isClosed bool
+	closedc  chan struct{}
 }
 
 // Close closes the underlaying connection.
@@ -86,16 +92,16 @@ type Conn struct {
 // an error. It will also cause the closed channel
 // to unblock.
 func (c *Conn) Close() error {
-	c.Cmu.Lock()
-	defer c.Cmu.Unlock()
+	c.cmu.Lock()
+	defer c.cmu.Unlock()
 
-	if c.IsClosed {
+	if c.isClosed {
 		return nil
 	}
 
-	err := c.Rc.Close()
-	close(c.Closedc)
-	c.IsClosed = true
+	err := c.rc.Close()
+	close(c.closedc)
+	c.isClosed = true
 
 	return err
 }
@@ -104,7 +110,7 @@ func (c *Conn) Close() error {
 // when the connection has been closed and is no
 // longer usable.
 func (c *Conn) Closed() <-chan struct{} {
-	return c.Closedc
+	return c.closedc
 }
 
 // Read blocks while it reads from r until an error occurs.
@@ -116,7 +122,7 @@ func (c *Conn) Closed() <-chan struct{} {
 func (c *Conn) Read(frameHandler func(f frame.Frame)) error {
 	for {
 		var f frame.Frame
-		if err := f.Decode(c.Rc); err != nil {
+		if err := f.Decode(c.rc); err != nil {
 			// It's very possible that the connection is already closed at this
 			// point, since any connection closed errors would bubble up
 			// from Decode. But just in case it's a decode error (bad data for example),
@@ -164,9 +170,9 @@ func (c *Conn) writeFrame(f *frame.Frame) error {
 		return err
 	}
 
-	c.Wmu.Lock()
-	_, err := b.WriteTo(c.W)
-	c.Wmu.Unlock()
+	c.wmu.Lock()
+	_, err := b.WriteTo(c.w)
+	c.wmu.Unlock()
 
 	return err
 }

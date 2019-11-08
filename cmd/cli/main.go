@@ -31,6 +31,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/wolfstudy/pulsar-client-go/core/auth"
 	"github.com/wolfstudy/pulsar-client-go/core/manage"
 	"github.com/wolfstudy/pulsar-client-go/core/msg"
 )
@@ -62,7 +63,7 @@ var args = struct {
 }
 
 func main() {
-	flag.StringVar(&args.pulsar, "pulsar", args.pulsar, "pulsar address")
+	flag.StringVar(&args.pulsar, "pulsar", args.pulsar, "pulsar address. May start with pulsar:// or pulsar+ssl://")
 	flag.StringVar(&args.tlsCert, "tls-cert", args.tlsCert, "(optional) path to TLS certificate")
 	flag.StringVar(&args.tlsKey, "tls-key", args.tlsKey, "(optional) path to TLS key")
 	flag.StringVar(&args.tlsCA, "tls-ca", args.tlsKey, "(optional) path to root certificate")
@@ -91,33 +92,18 @@ func main() {
 		cancel()
 	}()
 
-	var tlsCfg *tls.Config
-	if args.tlsCert != "" && args.tlsKey != "" {
-		tlsCfg = &tls.Config{
-			InsecureSkipVerify: args.tlsSkipVerify,
-		}
-		var err error
-		cert, err := tls.LoadX509KeyPair(args.tlsCert, args.tlsKey)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "error loading certificates:", err)
-			os.Exit(1)
-		}
-		tlsCfg.Certificates = []tls.Certificate{cert}
+	var authentication auth.Authentication
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: args.tlsSkipVerify,
+	}
 
-		if args.tlsCA != "" {
-			rootCA, err := ioutil.ReadFile(args.tlsCA)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "error loading certificate authority:", err)
-				os.Exit(1)
-			}
-			tlsCfg.RootCAs = x509.NewCertPool()
-			tlsCfg.RootCAs.AppendCertsFromPEM(rootCA)
-		}
+	if args.tlsCert != "" && args.tlsKey != "" {
+		authentication = auth.NewAuthenticationTLS(args.tlsCert, args.tlsKey)
 
 		// Inspect certificate and print the CommonName attribute,
 		// since this may be used for authorization
-		if len(cert.Certificate[0]) > 0 {
-			x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
+		if certs := authentication.GetAuthData().GetTlsCertificates(); len(certs) > 0 && len(certs[0].Certificate) > 0 && len(certs[0].Certificate[0]) > 0 {
+			x509Cert, err := x509.ParseCertificate(certs[0].Certificate[0])
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "error loading public certificate:", err)
 				os.Exit(1)
@@ -126,21 +112,35 @@ func main() {
 		}
 	}
 
+	if args.tlsCA != "" {
+		rootCA, err := ioutil.ReadFile(args.tlsCA)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error loading certificate authority:", err)
+			os.Exit(1)
+		}
+		tlsCfg.RootCAs = x509.NewCertPool()
+		tlsCfg.RootCAs.AppendCertsFromPEM(rootCA)
+	}
+
 	mcp := manage.NewClientPool()
 
 	switch args.producer {
 	case true:
 		// Create the managed producer
-		mpCfg := manage.ProducerConfig{
+		mpCfg := manage.ManagedProducerConfig{
 			Name:                  args.name,
 			Topic:                 args.topic,
 			NewProducerTimeout:    time.Second,
 			InitialReconnectDelay: time.Second,
 			MaxReconnectDelay:     time.Minute,
-			ClientConfig: manage.ClientConfig{
-				Addr:      args.pulsar,
-				TLSConfig: tlsCfg,
-				Errs:      asyncErrs,
+			ManagedClientConfig: manage.ManagedClientConfig{
+				ClientConfig: manage.ClientConfig{
+					Addr:           args.pulsar,
+					UseTLS:         args.tlsCert != "" && args.tlsKey != "",
+					TLSConfig:      tlsCfg,
+					Authentication: authentication,
+					Errs:           asyncErrs,
+				},
 			},
 		}
 		mp := manage.NewManagedProducer(mcp, mpCfg)
@@ -183,7 +183,7 @@ func main() {
 					return
 				}
 				sctx, cancel := context.WithTimeout(ctx, time.Second)
-				_, err := mp.Send(sctx, payload,"")
+				_, err := mp.Send(sctx, payload, "")
 				cancel()
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
@@ -199,16 +199,18 @@ func main() {
 		queue := make(chan msg.Message, 8)
 
 		// Create managed consumer
-		mcCfg := manage.ConsumerConfig{
+		mcCfg := manage.ManagedConsumerConfig{
 			Name:                  args.name,
 			Topic:                 args.topic,
 			NewConsumerTimeout:    time.Second,
 			InitialReconnectDelay: time.Second,
 			MaxReconnectDelay:     time.Minute,
-			ClientConfig: manage.ClientConfig{
-				Addr:      args.pulsar,
-				TLSConfig: tlsCfg,
-				Errs:      asyncErrs,
+			ManagedClientConfig: manage.ManagedClientConfig{
+				ClientConfig: manage.ClientConfig{
+					Addr:      args.pulsar,
+					TLSConfig: tlsCfg,
+					Errs:      asyncErrs,
+				},
 			},
 		}
 

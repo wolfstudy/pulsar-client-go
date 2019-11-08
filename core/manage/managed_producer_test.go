@@ -35,9 +35,11 @@ func TestManagedProducer(t *testing.T) {
 	}
 
 	cp := NewClientPool()
-	mp := NewManagedProducer(cp, ProducerConfig{
-		ClientConfig: ClientConfig{
-			Addr: srv.Addr,
+	mp := NewManagedProducer(cp, ManagedProducerConfig{
+		ManagedClientConfig: ManagedClientConfig{
+			ClientConfig: ClientConfig{
+				Addr: srv.Addr,
+			},
 		},
 		NewProducerTimeout: time.Second,
 		Topic:              "test-topic",
@@ -53,7 +55,7 @@ func TestManagedProducer(t *testing.T) {
 	}
 
 	payload := []byte("hi")
-	if _, err = mp.Send(ctx, payload,""); err != nil {
+	if _, err = mp.Send(ctx, payload, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -91,9 +93,11 @@ func TestManagedProducer_Redirect(t *testing.T) {
 	primarySrv.SetTopicLookupResp(topic, topicSrv.Addr, api.CommandLookupTopicResponse_Connect, false)
 
 	cp := NewClientPool()
-	mp := NewManagedProducer(cp, ProducerConfig{
-		ClientConfig: ClientConfig{
-			Addr: primarySrv.Addr,
+	mp := NewManagedProducer(cp, ManagedProducerConfig{
+		ManagedClientConfig: ManagedClientConfig{
+			ClientConfig: ClientConfig{
+				Addr: primarySrv.Addr,
+			},
 		},
 		NewProducerTimeout: time.Second,
 		Topic:              topic,
@@ -116,7 +120,7 @@ func TestManagedProducer_Redirect(t *testing.T) {
 	}
 
 	payload := []byte("hi")
-	if _, err = mp.Send(ctx, payload,""); err != nil {
+	if _, err = mp.Send(ctx, payload, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -147,9 +151,11 @@ func TestManagedProducer_SrvClosed(t *testing.T) {
 	}
 
 	cp := NewClientPool()
-	mp := NewManagedProducer(cp, ProducerConfig{
-		ClientConfig: ClientConfig{
-			Addr: srv.Addr,
+	mp := NewManagedProducer(cp, ManagedProducerConfig{
+		ManagedClientConfig: ManagedClientConfig{
+			ClientConfig: ClientConfig{
+				Addr: srv.Addr,
+			},
 		},
 		NewProducerTimeout: time.Second,
 		Topic:              "test-topic",
@@ -170,7 +176,7 @@ func TestManagedProducer_SrvClosed(t *testing.T) {
 	}
 
 	payload := []byte("hi")
-	if _, err = mp.Send(ctx, payload,""); err != nil {
+	if _, err = mp.Send(ctx, payload, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -198,9 +204,11 @@ func TestManagedProducer_ProducerClosed(t *testing.T) {
 	}
 
 	cp := NewClientPool()
-	mp := NewManagedProducer(cp, ProducerConfig{
-		ClientConfig: ClientConfig{
-			Addr: srv.Addr,
+	mp := NewManagedProducer(cp, ManagedProducerConfig{
+		ManagedClientConfig: ManagedClientConfig{
+			ClientConfig: ClientConfig{
+				Addr: srv.Addr,
+			},
 		},
 		NewProducerTimeout: time.Second,
 		Topic:              "test-topic",
@@ -257,7 +265,7 @@ func TestManagedProducer_ProducerClosed(t *testing.T) {
 	}
 
 	payload := []byte("hi")
-	if _, err = mp.Send(ctx, payload,""); err != nil {
+	if _, err = mp.Send(ctx, payload, ""); err != nil {
 		t.Fatal(err)
 	}
 

@@ -39,11 +39,11 @@ func NewConsumer(s frame.CmdSender, dispatcher *frame.Dispatcher, topic string,
 		S:           s,
 		Topic:       topic,
 		ConsumerID:  ConsumerID,
-		ReqID:       reqID,
-		Dispatcher:  dispatcher,
-		Queue:       queue,
-		Closedc:     make(chan struct{}),
-		EndOfTopicc: make(chan struct{}),
+		reqID:       reqID,
+		dispatcher:  dispatcher,
+		queue:       queue,
+		closedc:     make(chan struct{}),
+		endOfTopicc: make(chan struct{}),
 	}
 }
 
@@ -54,27 +54,26 @@ type Consumer struct {
 	Topic      string
 	ConsumerID uint64
 
-	ReqID      *msg.MonotonicID
-	Dispatcher *frame.Dispatcher // handles request/response state
+	reqID      *msg.MonotonicID
+	dispatcher *frame.Dispatcher // handles request/response state
 
-	Queue chan msg.Message
+	queue chan msg.Message
 
-	Omu      sync.Mutex           // protects following
-	Overflow []*api.MessageIdData // IDs of messages that were dropped because of full buffer
+	omu      sync.Mutex           // protects following
+	overflow []*api.MessageIdData // IDs of messages that were dropped because of full buffer
 
-	Mu           sync.Mutex // protects following
-	IsClosed     bool
-	Closedc      chan struct{}
-	IsEndOfTopic bool
-	EndOfTopicc  chan struct{}
+	mu           sync.Mutex // protects following
+	isClosed     bool
+	closedc      chan struct{}
+	isEndOfTopic bool
+	endOfTopicc  chan struct{}
 }
-
 
 // Messages returns a read-only channel of messages
 // received by the consumer. The channel will never be
 // closed by the consumer.
 func (c *Consumer) Messages() <-chan msg.Message {
-	return c.Queue
+	return c.queue
 }
 
 // Ack is used to signal to the broker that a given message has been
@@ -116,7 +115,7 @@ func (c *Consumer) Flow(permits uint32) error {
 // consumer has been closed, in which case the channel will have
 // been closed and unblocked.
 func (c *Consumer) Closed() <-chan struct{} {
-	return c.Closedc
+	return c.closedc
 }
 
 // ConnClosed unblocks when the consumer's connection has been closed. Once that
@@ -128,14 +127,14 @@ func (c *Consumer) ConnClosed() <-chan struct{} {
 // Close closes the consumer. The channel returned from the Closed method
 // will then unblock upon successful closure.
 func (c *Consumer) Close(ctx context.Context) error {
-	c.Mu.Lock()
-	defer c.Mu.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	if c.IsClosed {
+	if c.isClosed {
 		return nil
 	}
 
-	requestID := c.ReqID.Next()
+	requestID := c.reqID.Next()
 
 	cmd := api.BaseCommand{
 		Type: api.BaseCommand_CLOSE_CONSUMER.Enum(),
@@ -145,7 +144,7 @@ func (c *Consumer) Close(ctx context.Context) error {
 		},
 	}
 
-	resp, cancel, err := c.Dispatcher.RegisterReqID(*requestID)
+	resp, cancel, err := c.dispatcher.RegisterReqID(*requestID)
 	if err != nil {
 		return err
 	}
@@ -160,8 +159,8 @@ func (c *Consumer) Close(ctx context.Context) error {
 		return ctx.Err()
 
 	case <-resp:
-		c.IsClosed = true
-		close(c.Closedc)
+		c.isClosed = true
+		close(c.closedc)
 
 		return nil
 	}
@@ -169,7 +168,7 @@ func (c *Consumer) Close(ctx context.Context) error {
 
 // Unsubscribe the consumer from its topic.
 func (c *Consumer) Unsubscribe(ctx context.Context) error {
-	requestID := c.ReqID.Next()
+	requestID := c.reqID.Next()
 
 	cmd := api.BaseCommand{
 		Type: api.BaseCommand_UNSUBSCRIBE.Enum(),
@@ -179,7 +178,7 @@ func (c *Consumer) Unsubscribe(ctx context.Context) error {
 		},
 	}
 
-	resp, cancel, err := c.Dispatcher.RegisterReqID(*requestID)
+	resp, cancel, err := c.dispatcher.RegisterReqID(*requestID)
 	if err != nil {
 		return err
 	}
@@ -202,15 +201,15 @@ func (c *Consumer) Unsubscribe(ctx context.Context) error {
 // HandleCloseConsumer should be called when a CLOSE_CONSUMER message is received
 // associated with this consumer.
 func (c *Consumer) HandleCloseConsumer(f frame.Frame) error {
-	c.Mu.Lock()
-	defer c.Mu.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	if c.IsClosed {
+	if c.isClosed {
 		return nil
 	}
 
-	c.IsClosed = true
-	close(c.Closedc)
+	c.isClosed = true
+	close(c.closedc)
 
 	return nil
 }
@@ -218,21 +217,21 @@ func (c *Consumer) HandleCloseConsumer(f frame.Frame) error {
 // ReachedEndOfTopic unblocks whenever the topic has been "terminated" and
 // all the messages on the subscription were acknowledged.
 func (c *Consumer) ReachedEndOfTopic() <-chan struct{} {
-	return c.EndOfTopicc
+	return c.endOfTopicc
 }
 
 // HandleReachedEndOfTopic should be called for all received REACHED_END_OF_TOPIC messages
 // associated with this consumer.
 func (c *Consumer) HandleReachedEndOfTopic(f frame.Frame) error {
-	c.Mu.Lock()
-	defer c.Mu.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	if c.IsEndOfTopic {
+	if c.isEndOfTopic {
 		return nil
 	}
 
-	c.IsEndOfTopic = true
-	close(c.EndOfTopicc)
+	c.isEndOfTopic = true
+	close(c.endOfTopicc)
 
 	return nil
 }
@@ -251,10 +250,10 @@ func (c *Consumer) RedeliverUnacknowledged(ctx context.Context) error {
 		return err
 	}
 
-	// clear Overflow slice
-	c.Omu.Lock()
-	c.Overflow = nil
-	c.Omu.Unlock()
+	// clear overflow slice
+	c.omu.Lock()
+	c.overflow = nil
+	c.omu.Unlock()
 
 	return nil
 }
@@ -265,10 +264,10 @@ func (c *Consumer) RedeliverUnacknowledged(ctx context.Context) error {
 // will be redelivered.
 // https://github.com/apache/incubator-pulsar/issues/2003
 func (c *Consumer) RedeliverOverflow(ctx context.Context) (int, error) {
-	c.Omu.Lock()
-	defer c.Omu.Unlock()
+	c.omu.Lock()
+	defer c.omu.Unlock()
 
-	l := len(c.Overflow)
+	l := len(c.overflow)
 
 	if l == 0 {
 		return l, nil
@@ -286,7 +285,7 @@ func (c *Consumer) RedeliverOverflow(ctx context.Context) (int, error) {
 			Type: api.BaseCommand_REDELIVER_UNACKNOWLEDGED_MESSAGES.Enum(),
 			RedeliverUnacknowledgedMessages: &api.CommandRedeliverUnacknowledgedMessages{
 				ConsumerId: proto.Uint64(c.ConsumerID),
-				MessageIds: c.Overflow[i:end],
+				MessageIds: c.overflow[i:end],
 			},
 		}
 
@@ -295,8 +294,8 @@ func (c *Consumer) RedeliverOverflow(ctx context.Context) (int, error) {
 		}
 	}
 
-	// clear Overflow slice
-	c.Overflow = nil
+	// clear overflow slice
+	c.overflow = nil
 
 	return l, nil
 }
@@ -313,26 +312,26 @@ func (c *Consumer) HandleMessage(f frame.Frame) error {
 	}
 
 	select {
-	case c.Queue <- m:
+	case c.queue <- m:
 		return nil
 
 	default:
-		// Add messageId to Overflow buffer, avoiding duplicates.
+		// Add messageId to overflow buffer, avoiding duplicates.
 		newMid := f.BaseCmd.GetMessage().GetMessageId()
 
 		var dup bool
-		c.Omu.Lock()
-		for _, mid := range c.Overflow {
+		c.omu.Lock()
+		for _, mid := range c.overflow {
 			if proto.Equal(mid, newMid) {
 				dup = true
 				break
 			}
 		}
 		if !dup {
-			c.Overflow = append(c.Overflow, newMid)
+			c.overflow = append(c.overflow, newMid)
 		}
-		c.Omu.Unlock()
+		c.omu.Unlock()
 
-		return fmt.Errorf("consumer message queue on topic %q is full (capacity = %d)", c.Topic, cap(c.Queue))
+		return fmt.Errorf("consumer message queue on topic %q is full (capacity = %d)", c.Topic, cap(c.queue))
 	}
 }

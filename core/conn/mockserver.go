@@ -19,13 +19,6 @@ import (
 	"net"
 )
 
-// MockPulsarServer emulates a Pulsar server
-type MockPulsarServer struct {
-	Addr  string
-	Errs  chan error
-	Conns chan *Conn
-}
-
 func NewMockPulsarServer(ctx context.Context) (*MockPulsarServer, error) {
 	l, err := net.ListenTCP("tcp4", &net.TCPAddr{
 		IP:   net.IPv4zero,
@@ -62,14 +55,21 @@ func NewMockPulsarServer(ctx context.Context) (*MockPulsarServer, error) {
 			}()
 
 			mock.Conns <- &Conn{
-				Rc:      c,
-				W:       c,
-				Closedc: make(chan struct{}),
+				rc:      c,
+				w:       c,
+				closedc: make(chan struct{}),
 			}
 		}
 	}()
 
 	return &mock, nil
+}
+
+// MockPulsarServer emulates a Pulsar server
+type MockPulsarServer struct {
+	Addr  string
+	Errs  chan error
+	Conns chan *Conn
 }
 
 
