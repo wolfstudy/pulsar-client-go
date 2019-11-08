@@ -131,16 +131,18 @@ func main() {
 	switch args.producer {
 	case true:
 		// Create the managed producer
-		mpCfg := manage.ProducerConfig{
+		mpCfg := manage.ManagedProducerConfig{
 			Name:                  args.name,
 			Topic:                 args.topic,
 			NewProducerTimeout:    time.Second,
 			InitialReconnectDelay: time.Second,
 			MaxReconnectDelay:     time.Minute,
-			ClientConfig: manage.ClientConfig{
-				Addr:      args.pulsar,
-				TLSConfig: tlsCfg,
-				Errs:      asyncErrs,
+			ManagedClientConfig: manage.ManagedClientConfig{
+				ClientConfig: manage.ClientConfig{
+					Addr:      args.pulsar,
+					TLSConfig: tlsCfg,
+					Errs:      asyncErrs,
+				},
 			},
 		}
 		mp := manage.NewManagedProducer(mcp, mpCfg)
@@ -183,7 +185,7 @@ func main() {
 					return
 				}
 				sctx, cancel := context.WithTimeout(ctx, time.Second)
-				_, err := mp.Send(sctx, payload,"")
+				_, err := mp.Send(sctx, payload, "")
 				cancel()
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
@@ -199,16 +201,18 @@ func main() {
 		queue := make(chan msg.Message, 8)
 
 		// Create managed consumer
-		mcCfg := manage.ConsumerConfig{
+		mcCfg := manage.ManagedConsumerConfig{
 			Name:                  args.name,
 			Topic:                 args.topic,
 			NewConsumerTimeout:    time.Second,
 			InitialReconnectDelay: time.Second,
 			MaxReconnectDelay:     time.Minute,
-			ClientConfig: manage.ClientConfig{
-				Addr:      args.pulsar,
-				TLSConfig: tlsCfg,
-				Errs:      asyncErrs,
+			ManagedClientConfig: manage.ManagedClientConfig{
+				ClientConfig: manage.ClientConfig{
+					Addr:      args.pulsar,
+					TLSConfig: tlsCfg,
+					Errs:      asyncErrs,
+				},
 			},
 		}
 

@@ -31,9 +31,9 @@ func TestManagedClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mc := NewManagedClient(ClientConfig{
+	mc := NewManagedClient(ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: srv.Addr,
-	})
+	}})
 	defer mc.Stop()
 
 	expectedFrames := []api.BaseCommand_Type{
@@ -64,9 +64,9 @@ func TestManagedClient_SrvClosed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mc := NewManagedClient(ClientConfig{
+	mc := NewManagedClient(ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: srv.Addr,
-	})
+	}})
 	defer mc.Stop()
 
 	// repeatedly close the connection from the server's end;
@@ -108,8 +108,10 @@ func TestManagedClient_PingFailure(t *testing.T) {
 	srv.SetIgnorePings(true)
 
 	// Set client to ping every 1/2 second
-	mc := NewManagedClient(ClientConfig{
-		Addr:          srv.Addr,
+	mc := NewManagedClient(ManagedClientConfig{
+		ClientConfig: ClientConfig{
+			Addr: srv.Addr,
+		},
 		PingFrequency: 500 * time.Millisecond,
 	})
 	defer mc.Stop()
@@ -142,8 +144,10 @@ func TestManagedClient_ConnectFailure(t *testing.T) {
 	// then later enable them
 	srv.SetIgnoreConnects(true)
 
-	mc := NewManagedClient(ClientConfig{
-		Addr:           srv.Addr,
+	mc := NewManagedClient(ManagedClientConfig{
+		ClientConfig: ClientConfig{
+			Addr: srv.Addr,
+		},
 		ConnectTimeout: time.Second, // shorten connect timeout since no CONNECT response is expected
 	})
 	defer mc.Stop()
@@ -180,9 +184,9 @@ func TestManagedClient_Stop(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mc := NewManagedClient(ClientConfig{
+	mc := NewManagedClient(ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: srv.Addr,
-	})
+	}})
 	defer mc.Stop()
 
 	// wait for the client to connect

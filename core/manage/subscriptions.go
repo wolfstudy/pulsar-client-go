@@ -27,52 +27,52 @@ import (
 // NewSubscriptions returns a ready-to-use subscriptions.
 func NewSubscriptions() *Subscriptions {
 	return &Subscriptions{
-		Consumers: make(map[uint64]*sub.Consumer),
-		Producers: make(map[uint64]*pub.Producer),
+		consumers: make(map[uint64]*sub.Consumer),
+		producers: make(map[uint64]*pub.Producer),
 	}
 }
 
 // Subscriptions is responsible for storing producers and consumers
 // based on their IDs.
 type Subscriptions struct {
-	Cmu       sync.RWMutex // protects following
-	Consumers map[uint64]*sub.Consumer
+	cmu       sync.RWMutex // protects following
+	consumers map[uint64]*sub.Consumer
 
-	Pmu       sync.Mutex // protects following
-	Producers map[uint64]*pub.Producer
+	pmu       sync.Mutex // protects following
+	producers map[uint64]*pub.Producer
 }
 
 func (s *Subscriptions) AddConsumer(c *sub.Consumer) {
-	s.Cmu.Lock()
-	s.Consumers[c.ConsumerID] = c
-	s.Cmu.Unlock()
+	s.cmu.Lock()
+	s.consumers[c.ConsumerID] = c
+	s.cmu.Unlock()
 }
 
 func (s *Subscriptions) DelConsumer(c *sub.Consumer) {
-	s.Cmu.Lock()
-	delete(s.Consumers, c.ConsumerID)
-	s.Cmu.Unlock()
+	s.cmu.Lock()
+	delete(s.consumers, c.ConsumerID)
+	s.cmu.Unlock()
 }
 
 func (s *Subscriptions) HandleCloseConsumer(consumerID uint64, f frame.Frame) error {
-	s.Cmu.Lock()
-	defer s.Cmu.Unlock()
+	s.cmu.Lock()
+	defer s.cmu.Unlock()
 
-	c, ok := s.Consumers[consumerID]
+	c, ok := s.consumers[consumerID]
 	if !ok {
 		return utils.NewUnexpectedErrMsg(f.BaseCmd.GetType(), consumerID)
 	}
 
-	delete(s.Consumers, consumerID)
+	delete(s.consumers, consumerID)
 
 	return c.HandleCloseConsumer(f)
 }
 
 func (s *Subscriptions) HandleReachedEndOfTopic(consumerID uint64, f frame.Frame) error {
-	s.Cmu.Lock()
-	defer s.Cmu.Unlock()
+	s.cmu.Lock()
+	defer s.cmu.Unlock()
 
-	c, ok := s.Consumers[consumerID]
+	c, ok := s.consumers[consumerID]
 	if !ok {
 		return utils.NewUnexpectedErrMsg(f.BaseCmd.GetType(), consumerID)
 	}
@@ -81,9 +81,9 @@ func (s *Subscriptions) HandleReachedEndOfTopic(consumerID uint64, f frame.Frame
 }
 
 func (s *Subscriptions) HandleMessage(consumerID uint64, f frame.Frame) error {
-	s.Cmu.RLock()
-	c, ok := s.Consumers[consumerID]
-	s.Cmu.RUnlock()
+	s.cmu.RLock()
+	c, ok := s.consumers[consumerID]
+	s.cmu.RUnlock()
 
 	if !ok {
 		return utils.NewUnexpectedErrMsg(f.BaseCmd.GetType(), consumerID)
@@ -93,27 +93,27 @@ func (s *Subscriptions) HandleMessage(consumerID uint64, f frame.Frame) error {
 }
 
 func (s *Subscriptions) AddProducer(p *pub.Producer) {
-	s.Pmu.Lock()
-	s.Producers[p.ProducerID] = p
-	s.Pmu.Unlock()
+	s.pmu.Lock()
+	s.producers[p.ProducerID] = p
+	s.pmu.Unlock()
 }
 
 func (s *Subscriptions) DelProducer(p *pub.Producer) {
-	s.Pmu.Lock()
-	delete(s.Producers, p.ProducerID)
-	s.Pmu.Unlock()
+	s.pmu.Lock()
+	delete(s.producers, p.ProducerID)
+	s.pmu.Unlock()
 }
 
 func (s *Subscriptions) HandleCloseProducer(producerID uint64, f frame.Frame) error {
-	s.Pmu.Lock()
-	defer s.Pmu.Unlock()
+	s.pmu.Lock()
+	defer s.pmu.Unlock()
 
-	p, ok := s.Producers[producerID]
+	p, ok := s.producers[producerID]
 	if !ok {
 		return utils.NewUnexpectedErrMsg(f.BaseCmd.GetType(), producerID)
 	}
 
-	delete(s.Producers, producerID)
+	delete(s.producers, producerID)
 
 	return p.HandleCloseProducer(f)
 }

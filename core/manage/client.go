@@ -15,7 +15,9 @@ package manage
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"time"
 
 	"github.com/wolfstudy/pulsar-client-go/core/conn"
 	"github.com/wolfstudy/pulsar-client-go/core/frame"
@@ -27,17 +29,50 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
+// authMethodTLS is the name of the TLS authentication
+// method, used in the CONNECT message.
+const authMethodTLS = "tls"
+
+// ClientConfig is used to configure a Pulsar client.
+type ClientConfig struct {
+	Addr        string        // pulsar broker address. May start with pulsar://
+	phyAddr     string        // if set, the TCP connection should be made using this address. This is only ever set during Topic Lookup
+	DialTimeout time.Duration // timeout to use when establishing TCP connection
+	TLSConfig   *tls.Config   // TLS configuration. May be nil, in which case TLS will not be used
+	Errs        chan<- error  // asynchronous errors will be sent here. May be nil
+}
+
+// connAddr returns the address that should be used
+// for the TCP connection. It defaults to phyAddr if set,
+// otherwise Addr. This is to support the proxying through
+// a broker, as determined during topic lookup.
+func (c ClientConfig) connAddr() string {
+	if c.phyAddr != "" {
+		return c.phyAddr
+	}
+	return c.Addr
+}
+
+// setDefaults returns a modified config with appropriate zero values set to defaults.
+func (c ClientConfig) setDefaults() ClientConfig {
+	if c.DialTimeout <= 0 {
+		c.DialTimeout = 5 * time.Second
+	}
+
+	return c
+}
+
 // NewClient returns a Pulsar client for the given configuration options.
 func NewClient(cfg ClientConfig) (*Client, error) {
-	cfg = cfg.SetDefaults()
+	cfg = cfg.setDefaults()
 
 	var cnx *conn.Conn
 	var err error
 
 	if cfg.TLSConfig != nil {
-		cnx, err = conn.NewTLSConn(cfg.ConnAddr(), cfg.TLSConfig, cfg.DialTimeout)
+		cnx, err = conn.NewTLSConn(cfg.connAddr(), cfg.TLSConfig, cfg.DialTimeout)
 	} else {
-		cnx, err = conn.NewTCPConn(cfg.ConnAddr(), cfg.DialTimeout)
+		cnx, err = conn.NewTCPConn(cfg.connAddr(), cfg.DialTimeout)
 	}
 	if err != nil {
 		return nil, err
@@ -49,15 +84,15 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 	subs := NewSubscriptions()
 
 	c := &Client{
-		C:         cnx,
-		AsyncErrs: utils.AsyncErrors(cfg.Errs),
+		c:         cnx,
+		asyncErrs: utils.AsyncErrors(cfg.Errs),
 
-		Dispatcher:    dispatcher,
-		Subscriptions: subs,
-		Connector:     conn.NewConnector(cnx, dispatcher),
-		Pinger:        srv.NewPinger(cnx, dispatcher),
-		Discoverer:    srv.NewDiscoverer(cnx, dispatcher, &reqID),
-		Pubsub:        NewPubsub(cnx, dispatcher, subs, &reqID),
+		dispatcher:    dispatcher,
+		subscriptions: subs,
+		connector:     conn.NewConnector(cnx, dispatcher),
+		pinger:        srv.NewPinger(cnx, dispatcher),
+		discoverer:    srv.NewDiscoverer(cnx, dispatcher, &reqID),
+		pubsub:        NewPubsub(cnx, dispatcher, subs, &reqID),
 	}
 
 	handler := func(f frame.Frame) {
@@ -69,12 +104,12 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 		// the connection has been closed and is no longer usable.
 		defer func() {
 			if err := c.Close(); err != nil {
-				c.AsyncErrs.Send(err)
+				c.asyncErrs.Send(err)
 			}
 		}()
 
 		if err := cnx.Read(handler); err != nil {
-			c.AsyncErrs.Send(err)
+			c.asyncErrs.Send(err)
 		}
 	}()
 
@@ -84,16 +119,16 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 // Client is a Pulsar client, capable of sending and receiving
 // messages and managing the associated state.
 type Client struct {
-	C         *conn.Conn
-	AsyncErrs utils.AsyncErrors
+	c         *conn.Conn
+	asyncErrs utils.AsyncErrors
 
-	Dispatcher *frame.Dispatcher
+	dispatcher *frame.Dispatcher
 
-	Subscriptions *Subscriptions
-	Connector     *conn.Connector
-	Pinger        *srv.Pinger
-	Discoverer    *srv.Discoverer
-	Pubsub        *Pubsub
+	subscriptions *Subscriptions
+	connector     *conn.Connector
+	pinger        *srv.Pinger
+	discoverer    *srv.Discoverer
+	pubsub        *Pubsub
 }
 
 // Closed returns a channel that unblocks when the client's connection
@@ -101,13 +136,13 @@ type Client struct {
 // channel and recreate the Client if closed.
 // TODO: Rename to Done
 func (c *Client) Closed() <-chan struct{} {
-	return c.C.Closed()
+	return c.c.Closed()
 }
 
 // Close closes the connection. The channel returned from `Closed` will unblock.
 // The client should no longer be used after calling Close.
 func (c *Client) Close() error {
-	return c.C.Close()
+	return c.c.Close()
 }
 
 // Connect sends a Connect message to the Pulsar server, then
@@ -121,7 +156,7 @@ func (c *Client) Close() error {
 // See "Connection establishment" for more info:
 // https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#Connectionestablishment-6pslvw
 func (c *Client) Connect(ctx context.Context, proxyBrokerURL string) (*api.CommandConnected, error) {
-	return c.Connector.Connect(ctx, "", proxyBrokerURL)
+	return c.connector.Connect(ctx, "", proxyBrokerURL)
 }
 
 // ConnectTLS sends a Connect message to the Pulsar server, then
@@ -134,14 +169,14 @@ func (c *Client) Connect(ctx context.Context, proxyBrokerURL string) (*api.Comma
 // See "Connection establishment" for more info:
 // https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#Connectionestablishment-6pslvw
 func (c *Client) ConnectTLS(ctx context.Context, proxyBrokerURL string) (*api.CommandConnected, error) {
-	return c.Connector.Connect(ctx, utils.AuthMethodTLS, proxyBrokerURL)
+	return c.connector.Connect(ctx, authMethodTLS, proxyBrokerURL)
 }
 
 // Ping sends a PING message to the Pulsar server, then
 // waits for either a PONG response or the context to
 // timeout.
 func (c *Client) Ping(ctx context.Context) error {
-	return c.Pinger.Ping(ctx)
+	return c.pinger.Ping(ctx)
 }
 
 // LookupTopic returns metadata about the given topic. Topic lookup needs
@@ -154,13 +189,13 @@ func (c *Client) Ping(ctx context.Context) error {
 // See "Topic lookup" for more info:
 // https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#Topiclookup-rxds6i
 func (c *Client) LookupTopic(ctx context.Context, topic string, authoritative bool) (*api.CommandLookupTopicResponse, error) {
-	return c.Discoverer.LookupTopic(ctx, topic, authoritative)
+	return c.discoverer.LookupTopic(ctx, topic, authoritative)
 }
 
 // NewProducer creates a new producer capable of sending message to the
 // given topic.
 func (c *Client) NewProducer(ctx context.Context, topic, producerName string) (*pub.Producer, error) {
-	return c.Pubsub.Producer(ctx, topic, producerName)
+	return c.pubsub.Producer(ctx, topic, producerName)
 }
 
 // NewSharedConsumer creates a new shared consumer capable of reading messages from the
@@ -168,11 +203,11 @@ func (c *Client) NewProducer(ctx context.Context, topic, producerName string) (*
 // See "Subscription modes" for more information:
 // https://pulsar.incubator.apache.org/docs/latest/getting-started/ConceptsAndArchitecture/#Subscriptionmodes-jdrefl
 func (c *Client) NewSharedConsumer(ctx context.Context, topic, subscriptionName string, queue chan msg.Message) (*sub.Consumer, error) {
-	return c.Pubsub.Subscribe(ctx, topic, subscriptionName, api.CommandSubscribe_Shared, api.CommandSubscribe_Latest, queue)
+	return c.pubsub.Subscribe(ctx, topic, subscriptionName, api.CommandSubscribe_Shared, api.CommandSubscribe_Latest, queue)
 }
 
-func (c *Client) NewConsumerWithCfg(ctx context.Context, cfg ConsumerConfig, queue chan msg.Message) (*sub.Consumer, error) {
-	return c.Pubsub.SubscribeWithCfg(ctx, cfg, queue)
+func (c *Client) NewConsumerWithCfg(ctx context.Context, cfg ManagedConsumerConfig, queue chan msg.Message) (*sub.Consumer, error) {
+	return c.pubsub.SubscribeWithCfg(ctx, cfg, queue)
 }
 
 // NewExclusiveConsumer creates a new exclusive consumer capable of reading messages from the
@@ -184,7 +219,7 @@ func (c *Client) NewExclusiveConsumer(ctx context.Context, topic, subscriptionNa
 	if earliest {
 		initialPosition = api.CommandSubscribe_Earliest
 	}
-	return c.Pubsub.Subscribe(ctx, topic, subscriptionName, api.CommandSubscribe_Exclusive, initialPosition, queue)
+	return c.pubsub.Subscribe(ctx, topic, subscriptionName, api.CommandSubscribe_Exclusive, initialPosition, queue)
 }
 
 // NewFailoverConsumer creates a new failover consumer capable of reading messages from the
@@ -192,7 +227,7 @@ func (c *Client) NewExclusiveConsumer(ctx context.Context, topic, subscriptionNa
 // See "Subscription modes" for more information:
 // https://pulsar.incubator.apache.org/docs/latest/getting-started/ConceptsAndArchitecture/#Subscriptionmodes-jdrefl
 func (c *Client) NewFailoverConsumer(ctx context.Context, topic, subscriptionName string, queue chan msg.Message) (*sub.Consumer, error) {
-	return c.Pubsub.Subscribe(ctx, topic, subscriptionName, api.CommandSubscribe_Failover, api.CommandSubscribe_Latest, queue)
+	return c.pubsub.Subscribe(ctx, topic, subscriptionName, api.CommandSubscribe_Failover, api.CommandSubscribe_Latest, queue)
 }
 
 // handleFrame is called by the underlaying core with
@@ -207,70 +242,70 @@ func (c *Client) handleFrame(f frame.Frame) {
 	// Solicited responses with NO response ID associated
 
 	case api.BaseCommand_CONNECTED:
-		err = c.Dispatcher.NotifyGlobal(f)
+		err = c.dispatcher.NotifyGlobal(f)
 
 	case api.BaseCommand_PONG:
-		err = c.Dispatcher.NotifyGlobal(f)
+		err = c.dispatcher.NotifyGlobal(f)
 
 	// Solicited responses with a requestID to correlate
 	// it to its request
 
 	case api.BaseCommand_SUCCESS:
-		err = c.Dispatcher.NotifyReqID(f.BaseCmd.GetSuccess().GetRequestId(), f)
+		err = c.dispatcher.NotifyReqID(f.BaseCmd.GetSuccess().GetRequestId(), f)
 
 	case api.BaseCommand_ERROR:
-		err = c.Dispatcher.NotifyReqID(f.BaseCmd.GetError().GetRequestId(), f)
+		err = c.dispatcher.NotifyReqID(f.BaseCmd.GetError().GetRequestId(), f)
 
 	case api.BaseCommand_LOOKUP_RESPONSE:
-		err = c.Dispatcher.NotifyReqID(f.BaseCmd.GetLookupTopicResponse().GetRequestId(), f)
+		err = c.dispatcher.NotifyReqID(f.BaseCmd.GetLookupTopicResponse().GetRequestId(), f)
 
 	case api.BaseCommand_PARTITIONED_METADATA_RESPONSE:
-		err = c.Dispatcher.NotifyReqID(f.BaseCmd.GetPartitionMetadataResponse().GetRequestId(), f)
+		err = c.dispatcher.NotifyReqID(f.BaseCmd.GetPartitionMetadataResponse().GetRequestId(), f)
 
 	case api.BaseCommand_PRODUCER_SUCCESS:
-		err = c.Dispatcher.NotifyReqID(f.BaseCmd.GetProducerSuccess().GetRequestId(), f)
+		err = c.dispatcher.NotifyReqID(f.BaseCmd.GetProducerSuccess().GetRequestId(), f)
 
 	// Solicited responses with a (producerID, sequenceID) tuple to correlate
 	// it to its request
 
 	case api.BaseCommand_SEND_RECEIPT:
 		msg := f.BaseCmd.GetSendReceipt()
-		err = c.Dispatcher.NotifyProdSeqIDs(msg.GetProducerId(), msg.GetSequenceId(), f)
+		err = c.dispatcher.NotifyProdSeqIDs(msg.GetProducerId(), msg.GetSequenceId(), f)
 
 	case api.BaseCommand_SEND_ERROR:
 		msg := f.BaseCmd.GetSendError()
-		err = c.Dispatcher.NotifyProdSeqIDs(msg.GetProducerId(), msg.GetSequenceId(), f)
+		err = c.dispatcher.NotifyProdSeqIDs(msg.GetProducerId(), msg.GetSequenceId(), f)
 
 	// Unsolicited responses that have a producer ID
 
 	case api.BaseCommand_CLOSE_PRODUCER:
-		err = c.Subscriptions.HandleCloseProducer(f.BaseCmd.GetCloseProducer().GetProducerId(), f)
+		err = c.subscriptions.HandleCloseProducer(f.BaseCmd.GetCloseProducer().GetProducerId(), f)
 
 	// Unsolicited responses that have a consumer ID
 
 	case api.BaseCommand_CLOSE_CONSUMER:
-		err = c.Subscriptions.HandleCloseConsumer(f.BaseCmd.GetCloseConsumer().GetConsumerId(), f)
+		err = c.subscriptions.HandleCloseConsumer(f.BaseCmd.GetCloseConsumer().GetConsumerId(), f)
 
 	case api.BaseCommand_REACHED_END_OF_TOPIC:
-		err = c.Subscriptions.HandleReachedEndOfTopic(f.BaseCmd.GetReachedEndOfTopic().GetConsumerId(), f)
+		err = c.subscriptions.HandleReachedEndOfTopic(f.BaseCmd.GetReachedEndOfTopic().GetConsumerId(), f)
 
 	case api.BaseCommand_MESSAGE:
-		err = c.Subscriptions.HandleMessage(f.BaseCmd.GetMessage().GetConsumerId(), f)
+		err = c.subscriptions.HandleMessage(f.BaseCmd.GetMessage().GetConsumerId(), f)
 
 	// Unsolicited responses
 
 	case api.BaseCommand_PING:
-		err = c.Pinger.HandlePing(msgType, f.BaseCmd.GetPing())
+		err = c.pinger.HandlePing(msgType, f.BaseCmd.GetPing())
 
 	// In the failover subscription mode,
 	// all consumers receive ACTIVE_CONSUMER_CHANGE when a new subscriber is created or a subscriber exits.
 	case api.BaseCommand_ACTIVE_CONSUMER_CHANGE:
-		err = c.Subscriptions.HandleActiveConsumerChange(f.BaseCmd.GetActiveConsumerChange().GetConsumerId(), f)
+		err = c.subscriptions.HandleActiveConsumerChange(f.BaseCmd.GetActiveConsumerChange().GetConsumerId(), f)
 	default:
 		err = fmt.Errorf("unhandled message of type %q", f.BaseCmd.GetType())
 	}
 
 	if err != nil {
-		c.AsyncErrs.Send(err)
+		c.asyncErrs.Send(err)
 	}
 }

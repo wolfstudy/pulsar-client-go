@@ -15,55 +15,12 @@ package utils
 
 import (
 	"flag"
-	"math/rand"
-	"sync"
 	"testing"
-	"time"
-
-	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 )
 
 // ################
 // helper functions
 // ################
-
-var (
-	randStringChars = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	randStringMu    = new(sync.Mutex) //protects randStringRand, which isn't threadsafe
-	randStringRand  = rand.New(rand.NewSource(time.Now().UnixNano()))
-)
-
-// authMethodTLS is the name of the TLS authentication
-// method, used in the CONNECT message.
-const AuthMethodTLS = "tls"
-
-const (
-	// ProtoVersion is the Pulsar protocol version
-	// used by this client.
-	ProtoVersion = int32(api.ProtocolVersion_v12)
-
-	// ClientVersion is an opaque string sent
-	// by the client to the server on connect, eg:
-	// "Pulsar-Client-Java-v1.15.2"
-	ClientVersion = "pulsar-client-go"
-
-	// NndefRequestID defines a RequestID of -1.
-	//
-	// Usage example:
-	// https://github.com/apache/incubator-pulsar/blob/fdc7b8426d8253c9437777ae51a4639239550f00/pulsar-broker/src/main/java/org/apache/pulsar/broker/service/ServerCnx.java#L325
-	UndefRequestID = 1<<64 - 1
-)
-
-func RandString(n int) string {
-	b := make([]rune, n)
-	l := len(randStringChars)
-	randStringMu.Lock()
-	for i := range b {
-		b[i] = randStringChars[randStringRand.Intn(l)]
-	}
-	randStringMu.Unlock()
-	return string(b)
-}
 
 // pulsarAddr, if provided, is the Pulsar server to use for integration
 // tests (most likely Pulsar standalone running on localhost).

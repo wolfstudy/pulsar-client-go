@@ -33,9 +33,11 @@ var clientPool = manage.NewClientPool()
 
 func main() {
 	ctx := context.Background()
-	producerConf := manage.ProducerConfig{
-		ClientConfig: manage.ClientConfig{
-			Addr: "localhost:6650",
+	producerConf := manage.ManagedProducerConfig{
+		ManagedClientConfig: manage.ManagedClientConfig{
+			ClientConfig: manage.ClientConfig{
+				Addr: "localhost:6650",
+			},
 		},
 
 		Topic: "multi-topic-10",

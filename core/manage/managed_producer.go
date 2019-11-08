@@ -26,9 +26,9 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
-// ProducerConfig is used to configure a ManagedProducer.
-type ProducerConfig struct {
-	ClientConfig
+// ManagedProducerConfig is used to configure a ManagedProducer.
+type ManagedProducerConfig struct {
+	ManagedClientConfig
 
 	Topic      string
 	Name       string
@@ -41,7 +41,7 @@ type ProducerConfig struct {
 }
 
 // setDefaults returns a modified config with appropriate zero values set to defaults.
-func (m ProducerConfig) setDefaults() ProducerConfig {
+func (m ManagedProducerConfig) setDefaults() ManagedProducerConfig {
 	if m.NewProducerTimeout <= 0 {
 		m.NewProducerTimeout = 5 * time.Second
 	}
@@ -57,14 +57,14 @@ func (m ProducerConfig) setDefaults() ProducerConfig {
 
 // NewManagedProducer returns an initialized ManagedProducer. It will create and re-create
 // a Producer for the given discovery address and topic on a background goroutine.
-func NewManagedProducer(cp *ClientPool, cfg ProducerConfig) *ManagedProducer {
+func NewManagedProducer(cp *ClientPool, cfg ManagedProducerConfig) *ManagedProducer {
 	cfg = cfg.setDefaults()
 
 	m := ManagedProducer{
-		ClientPool: cp,
-		Cfg:        cfg,
-		AsyncErrs:  utils.AsyncErrors(cfg.Errs),
-		Waitc:      make(chan struct{}),
+		clientPool: cp,
+		cfg:        cfg,
+		asyncErrs:  utils.AsyncErrors(cfg.Errs),
+		waitc:      make(chan struct{}),
 	}
 
 	go m.manage()
@@ -72,85 +72,25 @@ func NewManagedProducer(cp *ClientPool, cfg ProducerConfig) *ManagedProducer {
 	return &m
 }
 
-func NewManagedPartitionProducer(cp *ClientPool, cfg ProducerConfig) (*ManagedPartitionProducer, error) {
-	cfg = cfg.setDefaults()
-	ctx := context.Background()
-
-	m := ManagedPartitionProducer{
-		ClientPool: cp,
-		Cfg:        cfg,
-		AsyncErrs:  utils.AsyncErrors(cfg.Errs),
-		Waitc:      make(chan struct{}),
-		MProducer:  make([]*ManagedProducer, 0),
-	}
-
-	manageClient := cp.Get(cfg.ClientConfig)
-	client, err := manageClient.Get(ctx)
-	if err != nil {
-		log.Errorf("create client error:%s", err.Error())
-		return nil, err
-	}
-	res, err := client.Discoverer.PartitionedMetadata(ctx, cfg.Topic)
-	if err != nil {
-		log.Errorf("get partition metadata error:%s", err.Error())
-		return nil, err
-	}
-	numPartitions := res.GetPartitions()
-	m.numPartitions = numPartitions
-	topicName := cfg.Topic
-	for i := 0; uint32(i) < numPartitions; i++ {
-		cfg.Topic = fmt.Sprintf("%s-partition-%d", topicName, i)
-		m.MProducer = append(m.MProducer, NewManagedProducer(cp, cfg))
-	}
-
-	var router pub.MessageRouter
-	if m.Cfg.Router == pub.UseSinglePartition {
-		router = &pub.SinglePartitionRouter{
-			Partition: numPartitions,
-		}
-	} else {
-		router = &pub.RoundRobinRouter{
-			Counter: 0,
-		}
-	}
-
-	m.MessageRouter = router
-
-	return &m, nil
-}
-
 // ManagedProducer wraps a Producer with re-connect logic.
 type ManagedProducer struct {
-	ClientPool *ClientPool
-	Cfg        ProducerConfig
-	AsyncErrs  utils.AsyncErrors
+	clientPool *ClientPool
+	cfg        ManagedProducerConfig
+	asyncErrs  utils.AsyncErrors
 
-	Mu       sync.RWMutex          // protects following
-	Producer *pub.Producer // either producer is nil and wait isn't or vice versa
-	Waitc    chan struct{}         // if producer is nil, this will unblock when it's been re-set
-}
-
-type ManagedPartitionProducer struct {
-	ClientPool *ClientPool
-	Cfg        ProducerConfig
-	AsyncErrs  utils.AsyncErrors
-
-	Mu            sync.RWMutex          // protects following
-	Producer      *pub.Producer // either producer is nil and wait isn't or vice versa
-	Waitc         chan struct{}         // if producer is nil, this will unblock when it's been re-set
-	MProducer     []*ManagedProducer
-	MessageRouter pub.MessageRouter
-	numPartitions uint32
+	mu       sync.RWMutex  // protects following
+	producer *pub.Producer // either producer is nil and wait isn't or vice versa
+	waitc    chan struct{} // if producer is nil, this will unblock when it's been re-set
 }
 
 // Send attempts to use the Producer's Send method if available. If not available,
 // an error is returned.
 func (m *ManagedProducer) Send(ctx context.Context, payload []byte, msgKey string) (*api.CommandSendReceipt, error) {
 	for {
-		m.Mu.RLock()
-		producer := m.Producer
-		wait := m.Waitc
-		m.Mu.RUnlock()
+		m.mu.RLock()
+		producer := m.producer
+		wait := m.waitc
+		m.mu.RUnlock()
 
 		if producer != nil {
 			return producer.Send(ctx, payload, msgKey)
@@ -167,47 +107,40 @@ func (m *ManagedProducer) Send(ctx context.Context, payload []byte, msgKey strin
 	}
 }
 
-func (m *ManagedPartitionProducer) Send(ctx context.Context, payload []byte, msgKey string) (*api.CommandSendReceipt, error) {
-	partition := m.MessageRouter.ChoosePartition(msgKey, m.numPartitions)
-	log.Debugf("choose partition is: %d, msg payload is: %s, msg key is: %s", partition, string(payload), msgKey)
-
-	return m.MProducer[partition].Send(ctx, payload, msgKey)
-}
-
 // Set unblocks the "wait" channel (if not nil),
 // and sets the producer under lock.
 func (m *ManagedProducer) Set(p *pub.Producer) {
-	m.Mu.Lock()
+	m.mu.Lock()
 
-	m.Producer = p
+	m.producer = p
 
-	if m.Waitc != nil {
-		close(m.Waitc)
-		m.Waitc = nil
+	if m.waitc != nil {
+		close(m.waitc)
+		m.waitc = nil
 	}
 
-	m.Mu.Unlock()
+	m.mu.Unlock()
 }
 
 // Unset creates the "wait" channel (if nil),
 // and sets the producer to nil under lock.
 func (m *ManagedProducer) Unset() {
-	m.Mu.Lock()
+	m.mu.Lock()
 
-	if m.Waitc == nil {
+	if m.waitc == nil {
 		// allow unset() to be called
 		// multiple times by only creating
 		// wait chan if its nil
-		m.Waitc = make(chan struct{})
+		m.waitc = make(chan struct{})
 	}
-	m.Producer = nil
+	m.producer = nil
 
-	m.Mu.Unlock()
+	m.mu.Unlock()
 }
 
 // NewProducer attempts to create a Producer.
 func (m *ManagedProducer) NewProducer(ctx context.Context) (*pub.Producer, error) {
-	mc, err := m.ClientPool.ForTopic(ctx, m.Cfg.ClientConfig, m.Cfg.Topic)
+	mc, err := m.clientPool.ForTopic(ctx, m.cfg.ManagedClientConfig, m.cfg.Topic)
 	if err != nil {
 		return nil, err
 	}
@@ -219,31 +152,31 @@ func (m *ManagedProducer) NewProducer(ctx context.Context) (*pub.Producer, error
 
 	// Create the topic producer. A blank producer name will
 	// cause Pulsar to generate a unique name.
-	return client.NewProducer(ctx, m.Cfg.Topic, m.Cfg.Name)
+	return client.NewProducer(ctx, m.cfg.Topic, m.cfg.Name)
 }
 
 // Reconnect blocks while a new Producer is created.
 func (m *ManagedProducer) Reconnect(initial bool) *pub.Producer {
-	retryDelay := m.Cfg.InitialReconnectDelay
+	retryDelay := m.cfg.InitialReconnectDelay
 
 	for attempt := 1; ; attempt++ {
 		if initial {
 			initial = false
 		} else {
 			<-time.After(retryDelay)
-			if retryDelay < m.Cfg.MaxReconnectDelay {
+			if retryDelay < m.cfg.MaxReconnectDelay {
 				// double retry delay until we reach the max
-				if retryDelay *= 2; retryDelay > m.Cfg.MaxReconnectDelay {
-					retryDelay = m.Cfg.MaxReconnectDelay
+				if retryDelay *= 2; retryDelay > m.cfg.MaxReconnectDelay {
+					retryDelay = m.cfg.MaxReconnectDelay
 				}
 			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), m.Cfg.NewProducerTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), m.cfg.NewProducerTimeout)
 		newProducer, err := m.NewProducer(ctx)
 		cancel()
 		if err != nil {
-			m.AsyncErrs.Send(err)
+			m.asyncErrs.Send(err)
 			continue
 		}
 
@@ -273,21 +206,87 @@ func (m *ManagedProducer) manage() {
 
 // Monitor a scoped deferrable lock
 func (m *ManagedProducer) Monitor() func() {
-	m.Mu.Lock()
-	return m.Mu.Unlock
+	m.mu.Lock()
+	return m.mu.Unlock
 }
 
 // Close producer
 func (m *ManagedProducer) Close(ctx context.Context) error {
 	defer m.Monitor()()
-	return m.Producer.Close(ctx)
+	return m.producer.Close(ctx)
+}
+
+func NewManagedPartitionProducer(cp *ClientPool, cfg ManagedProducerConfig) (*ManagedPartitionProducer, error) {
+	cfg = cfg.setDefaults()
+	ctx := context.Background()
+
+	m := ManagedPartitionProducer{
+		clientPool:       cp,
+		cfg:              cfg,
+		asyncErrs:        utils.AsyncErrors(cfg.Errs),
+		waitc:            make(chan struct{}),
+		managedProducers: make([]*ManagedProducer, 0),
+	}
+
+	managedClient := cp.Get(cfg.ManagedClientConfig)
+	client, err := managedClient.Get(ctx)
+	if err != nil {
+		log.Errorf("create client error:%s", err.Error())
+		return nil, err
+	}
+	res, err := client.discoverer.PartitionedMetadata(ctx, cfg.Topic)
+	if err != nil {
+		log.Errorf("get partition metadata error:%s", err.Error())
+		return nil, err
+	}
+	numPartitions := res.GetPartitions()
+	m.numPartitions = numPartitions
+	topicName := cfg.Topic
+	for i := 0; uint32(i) < numPartitions; i++ {
+		cfg.Topic = fmt.Sprintf("%s-partition-%d", topicName, i)
+		m.managedProducers = append(m.managedProducers, NewManagedProducer(cp, cfg))
+	}
+
+	var router pub.MessageRouter
+	if m.cfg.Router == pub.UseSinglePartition {
+		router = &pub.SinglePartitionRouter{
+			Partition: numPartitions,
+		}
+	} else {
+		router = &pub.RoundRobinRouter{
+			Counter: 0,
+		}
+	}
+
+	m.messageRouter = router
+
+	return &m, nil
+}
+
+type ManagedPartitionProducer struct {
+	clientPool *ClientPool
+	cfg        ManagedProducerConfig
+	asyncErrs  utils.AsyncErrors
+
+	mu               sync.RWMutex  // protects following
+	waitc            chan struct{} // if producer is nil, this will unblock when it's been re-set
+	managedProducers []*ManagedProducer
+	messageRouter    pub.MessageRouter
+	numPartitions    uint32
+}
+
+func (m *ManagedPartitionProducer) Send(ctx context.Context, payload []byte, msgKey string) (*api.CommandSendReceipt, error) {
+	partition := m.messageRouter.ChoosePartition(msgKey, m.numPartitions)
+	log.Debugf("choose partition is: %d, msg payload is: %s, msg key is: %s", partition, string(payload), msgKey)
+
+	return m.managedProducers[partition].Send(ctx, payload, msgKey)
 }
 
 func (m *ManagedPartitionProducer) Close(ctx context.Context) error {
 	var errMsg string
-	for _, producer := range m.MProducer {
+	for _, producer := range m.managedProducers {
 		if err := producer.Close(ctx); err != nil {
-			errMsg += fmt.Sprintf("topic %s, name %s: %s ", producer.Cfg.Topic, producer.Cfg.Name, err.Error())
+			errMsg += fmt.Sprintf("topic %s, name %s: %s ", producer.cfg.Topic, producer.cfg.Name, err.Error())
 		}
 	}
 	if errMsg != "" {

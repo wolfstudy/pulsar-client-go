@@ -33,9 +33,11 @@ var clientPool = manage.NewClientPool()
 func main() {
 	ctx := context.Background()
 
-	consumerConf := manage.ConsumerConfig{
-		ClientConfig: manage.ClientConfig{
-			Addr: "localhost:6650",
+	consumerConf := manage.ManagedConsumerConfig{
+		ManagedClientConfig: manage.ManagedClientConfig{
+			ClientConfig: manage.ClientConfig{
+				Addr: "localhost:6650",
+			},
 		},
 
 		Topic:   "multi-topic-10",
@@ -46,14 +48,14 @@ func main() {
 		QueueSize:        5,
 	}
 	//mp := manage.NewManagedConsumer(clientPool, consumerConf)
-	mp, err := manage.NewPartitionManagedConsumer(clientPool, consumerConf)
+	mp, err := manage.NewManagedPartitionConsumer(clientPool, consumerConf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	//mp2 := manage.NewManagedConsumer(clientPool, consumerConf)
 
-	mp2, err := manage.NewPartitionManagedConsumer(clientPool, consumerConf)
+	mp2, err := manage.NewManagedPartitionConsumer(clientPool, consumerConf)
 	if err != nil {
 		log.Fatal(err)
 	}

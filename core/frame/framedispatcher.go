@@ -24,8 +24,8 @@ import (
 // NewFrameDispatcher returns an instantiated FrameDispatcher.
 func NewFrameDispatcher() *Dispatcher {
 	return &Dispatcher{
-		ProdSeqIDs: make(map[ProdSeqKey]AsyncResp),
-		ReqIDs:     make(map[uint64]AsyncResp),
+		prodSeqIDs: make(map[prodSeqKey]asyncResp),
+		reqIDs:     make(map[uint64]asyncResp),
 	}
 }
 
@@ -38,37 +38,18 @@ type Dispatcher struct {
 	// therefore a single channel is used as their
 	// Respective FrameDispatcher. If the channel is
 	// nil, there's no outstanding request.
-	GlobalMu sync.Mutex // protects following
-	Global   *AsyncResp
+	globalMu sync.Mutex // protects following
+	global   *asyncResp
 
 	// All Responses that are correlated by their
 	// requestID
-	ReqIDMu sync.Mutex // protects following
-	ReqIDs  map[uint64]AsyncResp
+	reqIDMu sync.Mutex // protects following
+	reqIDs  map[uint64]asyncResp
 
 	// All Responses that are correlated by their
 	// (producerID, sequenceID) tuple
-	ProdSeqIDsMu sync.Mutex // protects following
-	ProdSeqIDs   map[ProdSeqKey]AsyncResp
-}
-
-// AsyncResp manages the state between a request
-// and Response. Requestors wait on the `Resp` channel
-// for the corResponding Response frame to their request.
-// If they are no longer interested in the Response (timeout),
-// then the `done` channel is closed, signaling to the Response
-// side that the Response is not expected/needed.
-type AsyncResp struct {
-	Resp chan<- Frame
-	Done <-chan struct{}
-}
-
-// prodSeqKey is a composite lookup key for the dispatchers
-// that use producerID and sequenceID to correlate Responses,
-// which are the SendReceipt and SendError Responses.
-type ProdSeqKey struct {
-	ProducerID uint64
-	SequenceID uint64
+	prodSeqIDsMu sync.Mutex // protects following
+	prodSeqIDs   map[prodSeqKey]asyncResp
 }
 
 // RegisterGlobal is used to wait for Responses that have no identifying
@@ -85,9 +66,9 @@ func (f *Dispatcher) RegisterGlobal() (Response <-chan Frame, cancel func(), err
 			return
 		}
 
-		f.GlobalMu.Lock()
-		f.Global = nil
-		f.GlobalMu.Unlock()
+		f.globalMu.Lock()
+		f.global = nil
+		f.globalMu.Unlock()
 
 		close(done)
 		done = nil
@@ -95,16 +76,16 @@ func (f *Dispatcher) RegisterGlobal() (Response <-chan Frame, cancel func(), err
 
 	Resp := make(chan Frame)
 
-	f.GlobalMu.Lock()
-	if f.Global != nil {
-		f.GlobalMu.Unlock()
+	f.globalMu.Lock()
+	if f.global != nil {
+		f.globalMu.Unlock()
 		return nil, nil, errors.New("outstanding global request already in progress")
 	}
-	f.Global = &AsyncResp{
-		Resp: Resp,
-		Done: done,
+	f.global = &asyncResp{
+		resp: Resp,
+		done: done,
 	}
-	f.GlobalMu.Unlock()
+	f.globalMu.Unlock()
 
 	return Resp, cancel, nil
 }
@@ -112,22 +93,22 @@ func (f *Dispatcher) RegisterGlobal() (Response <-chan Frame, cancel func(), err
 // NotifyGlobal should be called with Response frames that have
 // no identifying id (Pong, Connected).
 func (f *Dispatcher) NotifyGlobal(frame Frame) error {
-	f.GlobalMu.Lock()
-	a := f.Global
+	f.globalMu.Lock()
+	a := f.global
 	// ensure additional calls to notify
 	// fail with UnexpectedMsg (unless register is called again)
-	f.Global = nil
-	f.GlobalMu.Unlock()
+	f.global = nil
+	f.globalMu.Unlock()
 
 	if a == nil {
 		return utils.NewUnexpectedErrMsg(frame.BaseCmd.GetType())
 	}
 
 	select {
-	case a.Resp <- frame:
+	case a.resp <- frame:
 		// sent Response back to sender
 		return nil
-	case <-a.Done:
+	case <-a.done:
 		return utils.NewUnexpectedErrMsg(frame.BaseCmd.GetType())
 	}
 }
@@ -137,7 +118,7 @@ func (f *Dispatcher) NotifyGlobal(frame Frame) error {
 // specifically when they're not interested in the Response. It is an error
 // to have multiple outstanding requests with the same id tuple.
 func (f *Dispatcher) RegisterProdSeqIDs(producerID, sequenceID uint64) (Response <-chan Frame, cancel func(), err error) {
-	key := ProdSeqKey{producerID, sequenceID}
+	key := prodSeqKey{producerID, sequenceID}
 
 	var mu sync.Mutex
 	done := make(chan struct{})
@@ -148,9 +129,9 @@ func (f *Dispatcher) RegisterProdSeqIDs(producerID, sequenceID uint64) (Response
 			return
 		}
 
-		f.ProdSeqIDsMu.Lock()
-		delete(f.ProdSeqIDs, key)
-		f.ProdSeqIDsMu.Unlock()
+		f.prodSeqIDsMu.Lock()
+		delete(f.prodSeqIDs, key)
+		f.prodSeqIDsMu.Unlock()
 
 		close(done)
 		done = nil
@@ -158,16 +139,16 @@ func (f *Dispatcher) RegisterProdSeqIDs(producerID, sequenceID uint64) (Response
 
 	Resp := make(chan Frame)
 
-	f.ProdSeqIDsMu.Lock()
-	if _, ok := f.ProdSeqIDs[key]; ok {
-		f.ProdSeqIDsMu.Unlock()
+	f.prodSeqIDsMu.Lock()
+	if _, ok := f.prodSeqIDs[key]; ok {
+		f.prodSeqIDsMu.Unlock()
 		return nil, nil, fmt.Errorf("already exists an outstanding Response for producerID %d, sequenceID %d", producerID, sequenceID)
 	}
-	f.ProdSeqIDs[key] = AsyncResp{
-		Resp: Resp,
-		Done: done,
+	f.prodSeqIDs[key] = asyncResp{
+		resp: Resp,
+		done: done,
 	}
-	f.ProdSeqIDsMu.Unlock()
+	f.prodSeqIDsMu.Unlock()
 
 	return Resp, cancel, nil
 }
@@ -175,25 +156,25 @@ func (f *Dispatcher) RegisterProdSeqIDs(producerID, sequenceID uint64) (Response
 // NotifyProdSeqIDs should be called with Response frames that have
 // (producerID, sequenceID) id tuples to correlate them to their requests.
 func (f *Dispatcher) NotifyProdSeqIDs(producerID, sequenceID uint64, frame Frame) error {
-	key := ProdSeqKey{producerID, sequenceID}
+	key := prodSeqKey{producerID, sequenceID}
 
-	f.ProdSeqIDsMu.Lock()
+	f.prodSeqIDsMu.Lock()
 	// fetch Response channel from cubbyhole
-	a, ok := f.ProdSeqIDs[key]
+	a, ok := f.prodSeqIDs[key]
 	// ensure additional calls to notify with same key will
 	// fail with UnexpectedMsg (unless registerProdSeqIDs with same key is called)
-	delete(f.ProdSeqIDs, key)
-	f.ProdSeqIDsMu.Unlock()
+	delete(f.prodSeqIDs, key)
+	f.prodSeqIDsMu.Unlock()
 
 	if !ok {
 		return utils.NewUnexpectedErrMsg(frame.BaseCmd.GetType(), producerID, sequenceID)
 	}
 
 	select {
-	case a.Resp <- frame:
+	case a.resp <- frame:
 		// Response was correctly pushed into channel
 		return nil
-	case <-a.Done:
+	case <-a.done:
 		return utils.NewUnexpectedErrMsg(frame.BaseCmd.GetType(), producerID, sequenceID)
 	}
 }
@@ -212,9 +193,9 @@ func (f *Dispatcher) RegisterReqID(requestID uint64) (Response <-chan Frame, can
 			return
 		}
 
-		f.ReqIDMu.Lock()
-		delete(f.ReqIDs, requestID)
-		f.ReqIDMu.Unlock()
+		f.reqIDMu.Lock()
+		delete(f.reqIDs, requestID)
+		f.reqIDMu.Unlock()
 
 		close(done)
 		done = nil
@@ -222,16 +203,16 @@ func (f *Dispatcher) RegisterReqID(requestID uint64) (Response <-chan Frame, can
 
 	Resp := make(chan Frame)
 
-	f.ReqIDMu.Lock()
-	if _, ok := f.ReqIDs[requestID]; ok {
-		f.ReqIDMu.Unlock()
+	f.reqIDMu.Lock()
+	if _, ok := f.reqIDs[requestID]; ok {
+		f.reqIDMu.Unlock()
 		return nil, nil, fmt.Errorf("already exists an outstanding Response for requestID %d", requestID)
 	}
-	f.ReqIDs[requestID] = AsyncResp{
-		Resp: Resp,
-		Done: done,
+	f.reqIDs[requestID] = asyncResp{
+		resp: Resp,
+		done: done,
 	}
-	f.ReqIDMu.Unlock()
+	f.reqIDMu.Unlock()
 
 	return Resp, cancel, nil
 }
@@ -239,13 +220,13 @@ func (f *Dispatcher) RegisterReqID(requestID uint64) (Response <-chan Frame, can
 // NotifyReqID should be called with Response frames that have
 // a requestID to correlate them to their requests.
 func (f *Dispatcher) NotifyReqID(requestID uint64, frame Frame) error {
-	f.ReqIDMu.Lock()
+	f.reqIDMu.Lock()
 	// fetch Response channel from cubbyhole
-	a, ok := f.ReqIDs[requestID]
+	a, ok := f.reqIDs[requestID]
 	// ensure additional calls to notifyReqID with same key will
 	// fail with UnexpectedMsg (unless addReqID with same key is called)
-	delete(f.ReqIDs, requestID)
-	f.ReqIDMu.Unlock()
+	delete(f.reqIDs, requestID)
+	f.reqIDMu.Unlock()
 
 	if !ok {
 		return utils.NewUnexpectedErrMsg(frame.BaseCmd.GetType(), requestID)
@@ -253,10 +234,29 @@ func (f *Dispatcher) NotifyReqID(requestID uint64, frame Frame) error {
 
 	// send received message to Response channel
 	select {
-	case a.Resp <- frame:
+	case a.resp <- frame:
 		// Response was correctly pushed into channel
 		return nil
-	case <-a.Done:
+	case <-a.done:
 		return utils.NewUnexpectedErrMsg(frame.BaseCmd.GetType(), requestID)
 	}
+}
+
+// asyncResp manages the state between a request
+// and Response. Requestors wait on the `resp` channel
+// for the corResponding Response frame to their request.
+// If they are no longer interested in the Response (timeout),
+// then the `done` channel is closed, signaling to the Response
+// side that the Response is not expected/needed.
+type asyncResp struct {
+	resp chan<- Frame
+	done <-chan struct{}
+}
+
+// prodSeqKey is a composite lookup key for the dispatchers
+// that use producerID and sequenceID to correlate Responses,
+// which are the SendReceipt and SendError Responses.
+type prodSeqKey struct {
+	producerID uint64
+	sequenceID uint64
 }

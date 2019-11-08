@@ -36,9 +36,11 @@ func TestManagedConsumer(t *testing.T) {
 	}
 
 	cp := NewClientPool()
-	mc := NewManagedConsumer(cp, ConsumerConfig{
-		ClientConfig: ClientConfig{
-			Addr: srv.Addr,
+	mc := NewManagedConsumer(cp, ManagedConsumerConfig{
+		ManagedClientConfig: ManagedClientConfig{
+			ClientConfig: ClientConfig{
+				Addr: srv.Addr,
+			},
 		},
 		NewConsumerTimeout: time.Second,
 		Topic:              "test-topic",
@@ -113,9 +115,11 @@ func TestManagedConsumer_ReceiveAsync(t *testing.T) {
 	queueSize := 4
 
 	cp := NewClientPool()
-	mc := NewManagedConsumer(cp, ConsumerConfig{
-		ClientConfig: ClientConfig{
-			Addr: srv.Addr,
+	mc := NewManagedConsumer(cp, ManagedConsumerConfig{
+		ManagedClientConfig: ManagedClientConfig{
+			ClientConfig: ClientConfig{
+				Addr: srv.Addr,
+			},
 		},
 		NewConsumerTimeout: time.Second,
 		Topic:              "test-topic",
@@ -236,9 +240,11 @@ func TestManagedConsumer_SrvClosed(t *testing.T) {
 	}
 
 	cp := NewClientPool()
-	NewManagedConsumer(cp, ConsumerConfig{
-		ClientConfig: ClientConfig{
-			Addr: srv.Addr,
+	NewManagedConsumer(cp, ManagedConsumerConfig{
+		ManagedClientConfig: ManagedClientConfig{
+			ClientConfig: ClientConfig{
+				Addr: srv.Addr,
+			},
 		},
 		NewConsumerTimeout: time.Second,
 		Topic:              "test-topic",
@@ -270,9 +276,11 @@ func TestManagedConsumer_ConsumerClosed(t *testing.T) {
 	}
 
 	cp := NewClientPool()
-	NewManagedConsumer(cp, ConsumerConfig{
-		ClientConfig: ClientConfig{
-			Addr: srv.Addr,
+	NewManagedConsumer(cp, ManagedConsumerConfig{
+		ManagedClientConfig: ManagedClientConfig{
+			ClientConfig: ClientConfig{
+				Addr: srv.Addr,
+			},
 		},
 
 		NewConsumerTimeout: time.Second,

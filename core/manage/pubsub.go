@@ -29,32 +29,32 @@ import (
 // NewPubsub returns a ready-to-use pubsub.
 func NewPubsub(s frame.CmdSender, dispatcher *frame.Dispatcher, subscriptions *Subscriptions, reqID *msg.MonotonicID) *Pubsub {
 	return &Pubsub{
-		S:             s,
-		ReqID:         reqID,
-		ProducerID:    &msg.MonotonicID{ID: 0},
-		ConsumerID:    &msg.MonotonicID{ID: 0},
-		Dispatcher:    dispatcher,
-		Subscriptions: subscriptions,
+		s:             s,
+		reqID:         reqID,
+		producerID:    &msg.MonotonicID{ID: 0},
+		consumerID:    &msg.MonotonicID{ID: 0},
+		dispatcher:    dispatcher,
+		subscriptions: subscriptions,
 	}
 }
 
 // Pubsub is responsible for creating producers and consumers on a give topic.
 type Pubsub struct {
-	S          frame.CmdSender
-	ReqID      *msg.MonotonicID
-	ProducerID *msg.MonotonicID
-	ConsumerID *msg.MonotonicID
+	s          frame.CmdSender
+	reqID      *msg.MonotonicID
+	producerID *msg.MonotonicID
+	consumerID *msg.MonotonicID
 
-	Dispatcher    *frame.Dispatcher // handles request response state
-	Subscriptions *Subscriptions
+	dispatcher    *frame.Dispatcher // handles request response state
+	subscriptions *Subscriptions
 }
 
 // Subscribe subscribes to the given topic. The queueSize determines the buffer
 // size of the Consumer.Messages() channel.
 func (t *Pubsub) Subscribe(ctx context.Context, topic, subscribe string, subType api.CommandSubscribe_SubType,
 	initialPosition api.CommandSubscribe_InitialPosition, queue chan msg.Message) (*sub.Consumer, error) {
-	requestID := t.ReqID.Next()
-	consumerID := t.ConsumerID.Next()
+	requestID := t.reqID.Next()
+	consumerID := t.consumerID.Next()
 
 	cmd := api.BaseCommand{
 		Type: api.BaseCommand_SUBSCRIBE.Enum(),
@@ -68,28 +68,28 @@ func (t *Pubsub) Subscribe(ctx context.Context, topic, subscribe string, subType
 		},
 	}
 
-	resp, cancel, errs := t.Dispatcher.RegisterReqID(*requestID)
+	resp, cancel, errs := t.dispatcher.RegisterReqID(*requestID)
 	if errs != nil {
 		return nil, errs
 	}
 	defer cancel()
 
-	c := sub.NewConsumer(t.S, t.Dispatcher, topic, t.ReqID, *consumerID, queue)
+	c := sub.NewConsumer(t.s, t.dispatcher, topic, t.reqID, *consumerID, queue)
 	// the new subscription needs to be added to the map
 	// before sending the subscribe command, otherwise there'd
 	// be a race between receiving the success result and
 	// a possible message to the subscription
-	t.Subscriptions.AddConsumer(c)
+	t.subscriptions.AddConsumer(c)
 
-	if errs := t.S.SendSimpleCmd(cmd); errs != nil {
-		t.Subscriptions.DelConsumer(c)
+	if errs := t.s.SendSimpleCmd(cmd); errs != nil {
+		t.subscriptions.DelConsumer(c)
 		return nil, errs
 	}
 
 	// wait for a response or timeout
 	select {
 	case <-ctx.Done():
-		t.Subscriptions.DelConsumer(c)
+		t.subscriptions.DelConsumer(c)
 		return nil, ctx.Err()
 
 	case f := <-resp:
@@ -102,22 +102,24 @@ func (t *Pubsub) Subscribe(ctx context.Context, topic, subscribe string, subType
 			return c, nil
 
 		case api.BaseCommand_ERROR:
-			t.Subscriptions.DelConsumer(c)
+			t.subscriptions.DelConsumer(c)
 
 			errMsg := f.BaseCmd.GetError()
 			return nil, fmt.Errorf("%s: %s", errMsg.GetError().String(), errMsg.GetMessage())
 
 		default:
-			t.Subscriptions.DelConsumer(c)
+			t.subscriptions.DelConsumer(c)
 
 			return nil, utils.NewUnexpectedErrMsg(msgType, *requestID)
 		}
 	}
 }
 
-func (t *Pubsub) SubscribeWithCfg(ctx context.Context, cfg ConsumerConfig, queue chan msg.Message) (*sub.Consumer, error) {
-	requestID := t.ReqID.Next()
-	consumerID := t.ConsumerID.Next()
+// TODO: replace Subscribe() method above
+
+func (t *Pubsub) SubscribeWithCfg(ctx context.Context, cfg ManagedConsumerConfig, queue chan msg.Message) (*sub.Consumer, error) {
+	requestID := t.reqID.Next()
+	consumerID := t.consumerID.Next()
 
 	subType, subPos := t.GetCfgMode(cfg)
 
@@ -133,22 +135,22 @@ func (t *Pubsub) SubscribeWithCfg(ctx context.Context, cfg ConsumerConfig, queue
 		},
 	}
 
-	resp, cancel, errs := t.Dispatcher.RegisterReqID(*requestID)
+	resp, cancel, errs := t.dispatcher.RegisterReqID(*requestID)
 	if errs != nil {
 		return nil, errs
 	}
 	defer cancel()
 
-	c := sub.NewConsumer(t.S, t.Dispatcher, cfg.Topic, t.ReqID, *consumerID, queue)
+	c := sub.NewConsumer(t.s, t.dispatcher, cfg.Topic, t.reqID, *consumerID, queue)
 
 	// the new subscription needs to be added to the map
 	// before sending the subscribe command, otherwise there'd
 	// be a race between receiving the success result and
 	// a possible message to the subscription
-	t.Subscriptions.AddConsumer(c)
+	t.subscriptions.AddConsumer(c)
 
-	if errs := t.S.SendSimpleCmd(cmd); errs != nil {
-		t.Subscriptions.DelConsumer(c)
+	if errs := t.s.SendSimpleCmd(cmd); errs != nil {
+		t.subscriptions.DelConsumer(c)
 		return nil, errs
 	}
 
@@ -156,7 +158,7 @@ func (t *Pubsub) SubscribeWithCfg(ctx context.Context, cfg ConsumerConfig, queue
 
 	select {
 	case <-ctx.Done():
-		t.Subscriptions.DelConsumer(c)
+		t.subscriptions.DelConsumer(c)
 		return nil, ctx.Err()
 
 	case f := <-resp:
@@ -169,20 +171,20 @@ func (t *Pubsub) SubscribeWithCfg(ctx context.Context, cfg ConsumerConfig, queue
 			return c, nil
 
 		case api.BaseCommand_ERROR:
-			t.Subscriptions.DelConsumer(c)
+			t.subscriptions.DelConsumer(c)
 
 			errMsg := f.BaseCmd.GetError()
 			return nil, fmt.Errorf("%s: %s", errMsg.GetError().String(), errMsg.GetMessage())
 
 		default:
-			t.Subscriptions.DelConsumer(c)
+			t.subscriptions.DelConsumer(c)
 
 			return nil, utils.NewUnexpectedErrMsg(msgType, *requestID)
 		}
 	}
 }
 
-func (t *Pubsub) GetCfgMode(cfg ConsumerConfig) (api.CommandSubscribe_SubType, api.CommandSubscribe_InitialPosition) {
+func (t *Pubsub) GetCfgMode(cfg ManagedConsumerConfig) (api.CommandSubscribe_SubType, api.CommandSubscribe_InitialPosition) {
 	var (
 		subType api.CommandSubscribe_SubType
 		subPos  api.CommandSubscribe_InitialPosition
@@ -210,12 +212,10 @@ func (t *Pubsub) GetCfgMode(cfg ConsumerConfig) (api.CommandSubscribe_SubType, a
 	return subType, subPos
 }
 
-// TODO: replace Subscribe() method above
-
 // Producer creates a new producer for the given topic and producerName.
 func (t *Pubsub) Producer(ctx context.Context, topic, producerName string) (*pub.Producer, error) {
-	requestID := t.ReqID.Next()
-	producerID := t.ProducerID.Next()
+	requestID := t.reqID.Next()
+	producerID := t.producerID.Next()
 
 	cmd := api.BaseCommand{
 		Type: api.BaseCommand_PRODUCER.Enum(),
@@ -229,19 +229,19 @@ func (t *Pubsub) Producer(ctx context.Context, topic, producerName string) (*pub
 		cmd.Producer.ProducerName = proto.String(producerName)
 	}
 
-	resp, cancel, err := t.Dispatcher.RegisterReqID(*requestID)
+	resp, cancel, err := t.dispatcher.RegisterReqID(*requestID)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	p := pub.NewProducer(t.S, t.Dispatcher, t.ReqID, *producerID)
+	p := pub.NewProducer(t.s, t.dispatcher, t.reqID, *producerID)
 	// the new producer needs to be added to subscriptions before sending
 	// the create command to avoid potential race conditions
-	t.Subscriptions.AddProducer(p)
+	t.subscriptions.AddProducer(p)
 
-	if err := t.S.SendSimpleCmd(cmd); err != nil {
-		t.Subscriptions.DelProducer(p)
+	if err := t.s.SendSimpleCmd(cmd); err != nil {
+		t.subscriptions.DelProducer(p)
 		return nil, err
 	}
 
@@ -249,7 +249,7 @@ func (t *Pubsub) Producer(ctx context.Context, topic, producerName string) (*pub
 
 	select {
 	case <-ctx.Done():
-		t.Subscriptions.DelProducer(p)
+		t.subscriptions.DelProducer(p)
 		return nil, ctx.Err()
 
 	case f := <-resp:
@@ -265,13 +265,13 @@ func (t *Pubsub) Producer(ctx context.Context, topic, producerName string) (*pub
 			return p, nil
 
 		case api.BaseCommand_ERROR:
-			t.Subscriptions.DelProducer(p)
+			t.subscriptions.DelProducer(p)
 
 			errMsg := f.BaseCmd.GetError()
 			return nil, fmt.Errorf("%s: %s", errMsg.GetError().String(), errMsg.GetMessage())
 
 		default:
-			t.Subscriptions.DelProducer(p)
+			t.subscriptions.DelProducer(p)
 
 			return nil, utils.NewUnexpectedErrMsg(msgType, *requestID)
 		}

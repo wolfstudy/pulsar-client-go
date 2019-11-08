@@ -32,9 +32,9 @@ func TestManagedClientPool(t *testing.T) {
 	}
 
 	mcp := NewClientPool()
-	mc := mcp.Get(ClientConfig{
+	mc := mcp.Get(ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: srv.Addr,
-	})
+	}})
 
 	expectedFrames := []api.BaseCommand_Type{
 		api.BaseCommand_CONNECT,
@@ -49,9 +49,9 @@ func TestManagedClientPool(t *testing.T) {
 	}
 
 	// Assert additional call to Get returns same object
-	mc2 := mcp.Get(ClientConfig{
+	mc2 := mcp.Get(ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: srv.Addr,
-	})
+	}})
 	if mc != mc2 {
 		t.Fatalf("Get() returned %v; expected identical result from first call to Get() %v", mc2, mc)
 	}
@@ -67,9 +67,9 @@ func TestManagedClientPool_Stop(t *testing.T) {
 	}
 
 	mcp := NewClientPool()
-	mc := mcp.Get(ClientConfig{
+	mc := mcp.Get(ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: srv.Addr,
-	})
+	}})
 
 	expectedFrames := []api.BaseCommand_Type{
 		api.BaseCommand_CONNECT,
@@ -83,9 +83,9 @@ func TestManagedClientPool_Stop(t *testing.T) {
 	// from the pool
 	time.Sleep(200 * time.Millisecond)
 
-	mc2 := mcp.Get(ClientConfig{
+	mc2 := mcp.Get(ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: srv.Addr,
-	})
+	}})
 	if mc == mc2 {
 		t.Fatal("Get() returned same ManagedClient as previous; expected different object after calling ManagedClient.Stop()")
 	}
@@ -111,14 +111,14 @@ func TestManagedClientPool_ForTopic(t *testing.T) {
 	topic := "test"
 
 	cp := NewClientPool()
-	mc, err := cp.ForTopic(ctx, ClientConfig{
+	mc, err := cp.ForTopic(ctx, ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: primarySrv.Addr,
-	}, topic)
+	}}, topic)
 	if err != nil {
 		t.Fatalf("ForTopic() err = %v; expected nil", err)
 	}
 
-	if got, expected := mc.cfg.ConnAddr(), primarySrv.Addr; got != expected {
+	if got, expected := mc.cfg.connAddr(), primarySrv.Addr; got != expected {
 		t.Fatalf("ManagedClient address = %q; expected %q", got, expected)
 	} else {
 		t.Logf("ManagedClient address = %q", got)
@@ -139,9 +139,9 @@ func TestManagedClientPool_ForTopic_Failed(t *testing.T) {
 	primarySrv.SetTopicLookupResp(topic, primarySrv.Addr, api.CommandLookupTopicResponse_Failed, false)
 
 	cp := NewClientPool()
-	_, err = cp.ForTopic(ctx, ClientConfig{
+	_, err = cp.ForTopic(ctx, ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: primarySrv.Addr,
-	}, topic)
+	}}, topic)
 
 	if err == nil {
 		t.Fatalf("ForTopic() err = %v; expected non-nil", err)
@@ -163,15 +163,15 @@ func TestManagedClientPool_ForTopic_Proxy(t *testing.T) {
 	primarySrv.SetTopicLookupResp(topic, brokerURL, api.CommandLookupTopicResponse_Connect, true)
 
 	cp := NewClientPool()
-	mc, err := cp.ForTopic(ctx, ClientConfig{
+	mc, err := cp.ForTopic(ctx, ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: primarySrv.Addr,
-	}, topic)
+	}}, topic)
 	if err != nil {
 		t.Fatalf("ForTopic() err = %v; expected nil", err)
 	}
 
 	// original broker addr should be used as physical address
-	if got, expected := mc.cfg.ConnAddr(), primarySrv.Addr; got != expected {
+	if got, expected := mc.cfg.connAddr(), primarySrv.Addr; got != expected {
 		t.Fatalf("ManagedClient address = %q; expected %q", got, expected)
 	} else {
 		t.Logf("ManagedClient address = %q", got)
@@ -209,14 +209,14 @@ func TestManagedClientPool_ForTopic_Connect(t *testing.T) {
 
 	cp := NewClientPool()
 
-	mc, err := cp.ForTopic(ctx, ClientConfig{
+	mc, err := cp.ForTopic(ctx, ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: primarySrv.Addr,
-	}, topic)
+	}}, topic)
 	if err != nil {
 		t.Fatalf("ForTopic() err = %v; expected nil", err)
 	}
 
-	if got, expected := mc.cfg.ConnAddr(), topicSrv.Addr; got != expected {
+	if got, expected := mc.cfg.connAddr(), topicSrv.Addr; got != expected {
 		t.Fatalf("ManagedClient address = %q; expected %q", got, expected)
 	} else {
 		t.Logf("redirected ManagedClient address = %q", got)
@@ -247,14 +247,14 @@ func TestManagedClientPool_ForTopic_Redirect(t *testing.T) {
 
 	cp := NewClientPool()
 
-	mc, err := cp.ForTopic(ctx, ClientConfig{
+	mc, err := cp.ForTopic(ctx, ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: primarySrv.Addr,
-	}, topic)
+	}}, topic)
 	if err != nil {
 		t.Fatalf("ForTopic() err = %v; expected nil", err)
 	}
 
-	if got, expected := mc.cfg.ConnAddr(), topicSrv.Addr; got != expected {
+	if got, expected := mc.cfg.connAddr(), topicSrv.Addr; got != expected {
 		t.Fatalf("ManagedClient address = %q; expected %q", got, expected)
 	} else {
 		t.Logf("redirected ManagedClient address = %q", got)
@@ -286,9 +286,9 @@ func TestManagedClientPool_ForTopic_RedirectLoop(t *testing.T) {
 
 	cp := NewClientPool()
 
-	_, err = cp.ForTopic(ctx, ClientConfig{
+	_, err = cp.ForTopic(ctx, ManagedClientConfig{ClientConfig: ClientConfig{
 		Addr: primarySrv.Addr,
-	}, topic)
+	}}, topic)
 
 	if err == nil {
 		t.Fatalf("ForTopic() err = %v; expected non-nil", err)

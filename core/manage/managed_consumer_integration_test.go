@@ -35,7 +35,7 @@ func TestManagedConsumer_Int_ReceiveAsync(t *testing.T) {
 		}
 	}()
 
-	topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", utils.RandString(32))
+	topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", RandString(32))
 	cp := NewClientPool()
 	mcCfg := ClientConfig{
 		Addr: utils.PulsarAddr(t),
@@ -45,21 +45,25 @@ func TestManagedConsumer_Int_ReceiveAsync(t *testing.T) {
 	messages := make(chan msg.Message, 16)
 	errs := make(chan error, 1)
 
-	consumerCfg := ConsumerConfig{
-		ClientConfig: mcCfg,
-		Name:         utils.RandString(8),
-		Topic:        topic,
-		QueueSize:    128,
+	consumerCfg := ManagedConsumerConfig{
+		ManagedClientConfig: ManagedClientConfig{
+			ClientConfig: mcCfg,
+		},
+		Name:      RandString(8),
+		Topic:     topic,
+		QueueSize: 128,
 	}
 	mc := NewManagedConsumer(cp, consumerCfg)
 	go func() {
 		errs <- mc.ReceiveAsync(ctx, messages)
 	}()
 
-	producerCfg := ProducerConfig{
-		ClientConfig: mcCfg,
-		Name:         utils.RandString(8),
-		Topic:        topic,
+	producerCfg := ManagedProducerConfig{
+		ManagedClientConfig: ManagedClientConfig{
+			ClientConfig: mcCfg,
+		},
+		Name:  RandString(8),
+		Topic: topic,
 	}
 	mp := NewManagedProducer(cp, producerCfg)
 
@@ -76,7 +80,7 @@ func TestManagedConsumer_Int_ReceiveAsync(t *testing.T) {
 	MORE:
 		for _, msg := range expected {
 			for {
-				if _, err := mp.Send(ctx, []byte(msg),""); err != nil {
+				if _, err := mp.Send(ctx, []byte(msg), ""); err != nil {
 					continue
 				}
 				continue MORE
@@ -133,7 +137,7 @@ func TestManagedConsumer_Int_ReceiveAsync_Multiple(t *testing.T) {
 		}
 	}()
 
-	topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", utils.RandString(32))
+	topic := fmt.Sprintf("persistent://sample/standalone/ns1/test-%s", RandString(32))
 	cp := NewClientPool()
 	mcCfg := ClientConfig{
 		Addr: utils.PulsarAddr(t),
@@ -143,16 +147,18 @@ func TestManagedConsumer_Int_ReceiveAsync_Multiple(t *testing.T) {
 	messages := make(chan msg.Message, 16)
 	errs := make(chan error, 1)
 	consumers := make([]*ManagedConsumer, 8)
-	consumerName := utils.RandString(8)
+	consumerName := RandString(8)
 
 	// Create multiple managed consumers. All will
 	// use the same messages channel.
 	for i := range consumers {
-		consumerCfg := ConsumerConfig{
-			ClientConfig: mcCfg,
-			Name:         consumerName,
-			Topic:        topic,
-			QueueSize:    128,
+		consumerCfg := ManagedConsumerConfig{
+			ManagedClientConfig: ManagedClientConfig{
+				ClientConfig: mcCfg,
+			},
+			Name:      consumerName,
+			Topic:     topic,
+			QueueSize: 128,
 		}
 		consumers[i] = NewManagedConsumer(cp, consumerCfg)
 		go func(mc *ManagedConsumer) {
@@ -160,10 +166,12 @@ func TestManagedConsumer_Int_ReceiveAsync_Multiple(t *testing.T) {
 		}(consumers[i])
 	}
 
-	producerCfg := ProducerConfig{
-		ClientConfig: mcCfg,
-		Name:         utils.RandString(8),
-		Topic:        topic,
+	producerCfg := ManagedProducerConfig{
+		ManagedClientConfig: ManagedClientConfig{
+			ClientConfig: mcCfg,
+		},
+		Name:  RandString(8),
+		Topic: topic,
 	}
 	mp := NewManagedProducer(cp, producerCfg)
 
@@ -180,7 +188,7 @@ func TestManagedConsumer_Int_ReceiveAsync_Multiple(t *testing.T) {
 	MORE:
 		for _, msg := range expected {
 			for {
-				if _, err := mp.Send(ctx, []byte(msg),""); err != nil {
+				if _, err := mp.Send(ctx, []byte(msg), ""); err != nil {
 					continue
 				}
 				continue MORE

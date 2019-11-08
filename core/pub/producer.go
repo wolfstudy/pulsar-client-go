@@ -35,42 +35,42 @@ var ErrClosedProducer = errors.New("producer is closed")
 // sends messages (type MESSAGE) to Pulsar.
 func NewProducer(s frame.CmdSender, dispatcher *frame.Dispatcher, reqID *msg.MonotonicID, producerID uint64) *Producer {
 	return &Producer{
-		S:          s,
+		s:          s,
 		ProducerID: producerID,
-		ReqID:      reqID,
-		SeqID:      &msg.MonotonicID{ID: 0},
-		Dispatcher: dispatcher,
-		Closedc:    make(chan struct{}),
+		reqID:      reqID,
+		seqID:      &msg.MonotonicID{ID: 0},
+		dispatcher: dispatcher,
+		closedc:    make(chan struct{}),
 	}
 }
 
 // Producer is responsible for creating a subscription producer and
 // managing its state.
 type Producer struct {
-	S frame.CmdSender
+	s frame.CmdSender
 
 	ProducerID   uint64
 	ProducerName string
 
-	ReqID *msg.MonotonicID
-	SeqID *msg.MonotonicID
+	reqID *msg.MonotonicID
+	seqID *msg.MonotonicID
 
-	Dispatcher *frame.Dispatcher // handles request/response state
+	dispatcher *frame.Dispatcher // handles request/response state
 
-	Mu       sync.RWMutex // protects following
-	IsClosed bool
-	Closedc  chan struct{}
+	mu       sync.RWMutex // protects following
+	isClosed bool
+	closedc  chan struct{}
 }
 
 func (p *Producer) Send(ctx context.Context, payload []byte, msgKey string) (*api.CommandSendReceipt, error) {
-	p.Mu.RLock()
-	if p.IsClosed {
-		p.Mu.RUnlock()
+	p.mu.RLock()
+	if p.isClosed {
+		p.mu.RUnlock()
 		return nil, ErrClosedProducer
 	}
-	p.Mu.RUnlock()
+	p.mu.RUnlock()
 
-	sequenceID := p.SeqID.Next()
+	sequenceID := p.seqID.Next()
 
 	cmd := api.BaseCommand{
 		Type: api.BaseCommand_SEND.Enum(),
@@ -100,13 +100,13 @@ func (p *Producer) Send(ctx context.Context, payload []byte, msgKey string) (*ap
 		}
 	}
 
-	resp, cancel, err := p.Dispatcher.RegisterProdSeqIDs(p.ProducerID, *sequenceID)
+	resp, cancel, err := p.dispatcher.RegisterProdSeqIDs(p.ProducerID, *sequenceID)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	if err := p.S.SendPayloadCmd(cmd, metadata, payload); err != nil {
+	if err := p.s.SendPayloadCmd(cmd, metadata, payload); err != nil {
 		return nil, err
 	}
 
@@ -142,7 +142,7 @@ func (p *Producer) Send(ctx context.Context, payload []byte, msgKey string) (*ap
 // been closed.
 // TODO: Rename Done
 func (p *Producer) Closed() <-chan struct{} {
-	return p.Closedc
+	return p.closedc
 }
 
 func (p *Producer) Name() string {
@@ -150,13 +150,13 @@ func (p *Producer) Name() string {
 }
 
 func (p *Producer) LastSequenceID() uint64 {
-	return *p.SeqID.Last()
+	return *p.seqID.Last()
 }
 
 // ConnClosed unblocks when the producer's connection has been closed. Once that
 // happens, it's necessary to first recreate the client and then the producer.
 func (p *Producer) ConnClosed() <-chan struct{} {
-	return p.S.Closed()
+	return p.s.Closed()
 }
 
 // Close closes the producer. When receiving a CloseProducer command,
@@ -164,14 +164,14 @@ func (p *Producer) ConnClosed() <-chan struct{} {
 // wait until all pending messages are persisted and then reply Success to the client.
 // https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#command-closeproducer
 func (p *Producer) Close(ctx context.Context) error {
-	p.Mu.Lock()
-	defer p.Mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-	if p.IsClosed {
+	if p.isClosed {
 		return nil
 	}
 
-	requestID := p.ReqID.Next()
+	requestID := p.reqID.Next()
 
 	cmd := api.BaseCommand{
 		Type: api.BaseCommand_CLOSE_PRODUCER.Enum(),
@@ -181,13 +181,13 @@ func (p *Producer) Close(ctx context.Context) error {
 		},
 	}
 
-	resp, cancel, err := p.Dispatcher.RegisterReqID(*requestID)
+	resp, cancel, err := p.dispatcher.RegisterReqID(*requestID)
 	if err != nil {
 		return err
 	}
 	defer cancel()
 
-	if err := p.S.SendSimpleCmd(cmd); err != nil {
+	if err := p.s.SendSimpleCmd(cmd); err != nil {
 		return err
 	}
 
@@ -196,8 +196,8 @@ func (p *Producer) Close(ctx context.Context) error {
 		return ctx.Err()
 
 	case <-resp:
-		p.IsClosed = true
-		close(p.Closedc)
+		p.isClosed = true
+		close(p.closedc)
 
 		return nil
 	}
@@ -212,15 +212,15 @@ func (p *Producer) Close(ctx context.Context) error {
 // When receiving the CloseProducer, the client is expected to go through the service discovery lookup again and recreate the producer again. The TCP connection is not being affected.
 // https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#command-closeproducer
 func (p *Producer) HandleCloseProducer(f frame.Frame) error {
-	p.Mu.Lock()
-	defer p.Mu.Unlock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-	if p.IsClosed {
+	if p.isClosed {
 		return nil
 	}
 
-	p.IsClosed = true
-	close(p.Closedc)
+	p.isClosed = true
+	close(p.closedc)
 
 	return nil
 }

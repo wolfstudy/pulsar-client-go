@@ -37,7 +37,7 @@ func TestPubsub_Subscribe_Success(t *testing.T) {
 	tp := NewPubsub(&ms, dispatcher, subs, reqID)
 	// manually set consumerID to verify that it's correctly
 	// being set on Consumer
-	tp.ConsumerID = &msg.MonotonicID{ID: consID}
+	tp.consumerID = &msg.MonotonicID{ID: consID}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -84,7 +84,7 @@ func TestPubsub_Subscribe_Success(t *testing.T) {
 		t.Fatalf("got Consumer.consumerID = %d; expected %d", got.ConsumerID, consID)
 	}
 
-	if _, ok := subs.Consumers[got.ConsumerID]; !ok {
+	if _, ok := subs.consumers[got.ConsumerID]; !ok {
 		t.Fatalf("subscriptions.consumers[%d] is absent; expected consumer", got.ConsumerID)
 	}
 }
@@ -138,7 +138,7 @@ func TestPubsub_Subscribe_Error(t *testing.T) {
 	}
 	t.Logf("subscribe() err = %v", r.err)
 
-	if got, expected := len(subs.Consumers), 0; got != expected {
+	if got, expected := len(subs.consumers), 0; got != expected {
 		t.Fatalf("subscriptions.consumers has %d elements; expected %d", got, expected)
 	}
 }
@@ -154,7 +154,7 @@ func TestPubsub_Producer_Success(t *testing.T) {
 	tp := NewPubsub(&ms, dispatcher, subs, reqID)
 	// manually set producerID to verify that it's correctly
 	// being set on Producer
-	tp.ProducerID = &msg.MonotonicID{ID: prodID}
+	tp.producerID = &msg.MonotonicID{ID: prodID}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -206,7 +206,7 @@ func TestPubsub_Producer_Success(t *testing.T) {
 		t.Fatalf("got Producer.producerName = %q; expected %q", got.ProducerName, prodName)
 	}
 
-	if _, ok := subs.Producers[got.ProducerID]; !ok {
+	if _, ok := subs.producers[got.ProducerID]; !ok {
 		t.Fatalf("subscriptions.producers[%d] is absent; expected producer", got.ProducerID)
 	}
 }
@@ -222,7 +222,7 @@ func TestPubsub_Producer_Error(t *testing.T) {
 	tp := NewPubsub(&ms, dispatcher, subs, reqID)
 	// manually set producerID to verify that it's correctly
 	// being set on Producer
-	tp.ProducerID = &msg.MonotonicID{ID: prodID}
+	tp.producerID = &msg.MonotonicID{ID: prodID}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -263,7 +263,7 @@ func TestPubsub_Producer_Error(t *testing.T) {
 	}
 	t.Logf("producer() err = %v", r.err)
 
-	if got, expected := len(subs.Producers), 0; got != expected {
+	if got, expected := len(subs.producers), 0; got != expected {
 		t.Fatalf("subscriptions.producers has %d elements; expected %d", got, expected)
 	}
 }

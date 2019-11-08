@@ -25,9 +25,9 @@ import (
 // NewDiscoverer returns a ready-to-use discoverer
 func NewDiscoverer(s frame.CmdSender, dispatcher *frame.Dispatcher, reqID *msg.MonotonicID) *Discoverer {
 	return &Discoverer{
-		S:          s,
-		ReqID:      reqID,
-		Dispatcher: dispatcher,
+		s:          s,
+		reqID:      reqID,
+		dispatcher: dispatcher,
 	}
 }
 
@@ -35,9 +35,9 @@ func NewDiscoverer(s frame.CmdSender, dispatcher *frame.Dispatcher, reqID *msg.M
 //
 // https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#Servicediscovery-40v5m
 type Discoverer struct {
-	S          frame.CmdSender
-	ReqID      *msg.MonotonicID
-	Dispatcher *frame.Dispatcher
+	s          frame.CmdSender
+	reqID      *msg.MonotonicID
+	dispatcher *frame.Dispatcher
 }
 
 // PartitionedMetadata performs a PARTITIONED_METADATA request for the given
@@ -46,7 +46,7 @@ type Discoverer struct {
 //
 // https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#Partitionedtopicsdiscovery-g14a9h
 func (d *Discoverer) PartitionedMetadata(ctx context.Context, topic string) (*api.CommandPartitionedTopicMetadataResponse, error) {
-	requestID := d.ReqID.Next()
+	requestID := d.reqID.Next()
 	cmd := api.BaseCommand{
 		Type: api.BaseCommand_PARTITIONED_METADATA.Enum(),
 		PartitionMetadata: &api.CommandPartitionedTopicMetadata{
@@ -55,13 +55,13 @@ func (d *Discoverer) PartitionedMetadata(ctx context.Context, topic string) (*ap
 		},
 	}
 
-	resp, cancel, err := d.Dispatcher.RegisterReqID(*requestID)
+	resp, cancel, err := d.dispatcher.RegisterReqID(*requestID)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	if err := d.S.SendSimpleCmd(cmd); err != nil {
+	if err := d.s.SendSimpleCmd(cmd); err != nil {
 		return nil, err
 	}
 
@@ -82,7 +82,7 @@ func (d *Discoverer) PartitionedMetadata(ctx context.Context, topic string) (*ap
 //
 // https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#Topiclookup-dk72wp
 func (d *Discoverer) LookupTopic(ctx context.Context, topic string, authoritative bool) (*api.CommandLookupTopicResponse, error) {
-	requestID := d.ReqID.Next()
+	requestID := d.reqID.Next()
 
 	cmd := api.BaseCommand{
 		Type: api.BaseCommand_LOOKUP.Enum(),
@@ -93,13 +93,13 @@ func (d *Discoverer) LookupTopic(ctx context.Context, topic string, authoritativ
 		},
 	}
 
-	resp, cancel, err := d.Dispatcher.RegisterReqID(*requestID)
+	resp, cancel, err := d.dispatcher.RegisterReqID(*requestID)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	if err := d.S.SendSimpleCmd(cmd); err != nil {
+	if err := d.s.SendSimpleCmd(cmd); err != nil {
 		return nil, err
 	}
 

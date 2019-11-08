@@ -29,6 +29,15 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/pkg/log"
 )
 
+func NewUnackedMessageTracker() *UnackedMessageTracker {
+	UnAckTracker := &UnackedMessageTracker{
+		currentSet: set.NewSet(),
+		oldOpenSet: set.NewSet(),
+	}
+
+	return UnAckTracker
+}
+
 type UnackedMessageTracker struct {
 	cmu               sync.RWMutex // protects following
 	currentSet        set.Set
@@ -37,15 +46,6 @@ type UnackedMessageTracker struct {
 	timeout           *time.Ticker
 	consumer          *ManagedConsumer
 	partitionConsumer *ManagedPartitionConsumer
-}
-
-func NewUnackedMessageTracker() *UnackedMessageTracker {
-	UnAckTracker := &UnackedMessageTracker{
-		currentSet: set.NewSet(),
-		oldOpenSet: set.NewSet(),
-	}
-
-	return UnAckTracker
 }
 
 func (t *UnackedMessageTracker) Size() int {
@@ -172,7 +172,7 @@ func (t *UnackedMessageTracker) Start(ackTimeoutMillis int64) {
 							messageIdsMap[msgID.GetPartition()] = append(messageIdsMap[msgID.GetPartition()], msgID)
 						}
 
-						for index, subConsumer := range t.partitionConsumer.MConsumer {
+						for index, subConsumer := range t.partitionConsumer.managedConsumers {
 							if messageIdsMap[int32(index)] != nil {
 								cmd := api.BaseCommand{
 									Type: api.BaseCommand_REDELIVER_UNACKNOWLEDGED_MESSAGES.Enum(),
@@ -182,7 +182,7 @@ func (t *UnackedMessageTracker) Start(ackTimeoutMillis int64) {
 									},
 								}
 								log.Debugf("index value: %d, partition name is:%s, messageID length:%d",
-									index, t.partitionConsumer.MConsumer[index].consumer.Topic, len(messageIdsMap[int32(index)]))
+									index, t.partitionConsumer.managedConsumers[index].consumer.Topic, len(messageIdsMap[int32(index)]))
 								if err := subConsumer.consumer.S.SendSimpleCmd(cmd); err != nil {
 									log.Errorf("send partition subConsumer redeliver cmd error:%s", err.Error())
 									return

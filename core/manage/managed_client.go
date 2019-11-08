@@ -15,7 +15,6 @@ package manage
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"sync"
 	"time"
@@ -23,13 +22,9 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
-// ClientConfig is used to configure a Pulsar client.
-type ClientConfig struct {
-	Addr        string        // pulsar broker address. May start with pulsar://
-	phyAddr     string        // if set, the TCP connection should be made using this address. This is only ever set during Topic Lookup
-	DialTimeout time.Duration // timeout to use when establishing TCP connection
-	TLSConfig   *tls.Config   // TLS configuration. May be nil, in which case TLS will not be used
-	Errs        chan<- error  // asynchronous errors will be sent here. May be nil
+// ManagedClientConfig is used to configure a ManagedClient.
+type ManagedClientConfig struct {
+	ClientConfig
 
 	PingFrequency         time.Duration // how often to PING server
 	PingTimeout           time.Duration // how long to wait for PONG response
@@ -38,49 +33,29 @@ type ClientConfig struct {
 	MaxReconnectDelay     time.Duration // maximum time to wait to attempt to reconnect Client
 }
 
-// ConnAddr returns the address that should be used
-// for the TCP connection. It defaults to phyAddr if set,
-// otherwise Addr. This is to support the proxying through
-// a broker, as determined during topic lookup.
-func (c ClientConfig) ConnAddr() string {
-	if c.phyAddr != "" {
-		return c.phyAddr
-	}
-	return c.Addr
-}
-
 // setDefaults returns a modified config with appropriate zero values set to defaults.
-func (c ClientConfig) SetDefaults() ClientConfig {
-	if c.DialTimeout <= 0 {
-		c.DialTimeout = 5 * time.Second
+func (m ManagedClientConfig) setDefaults() ManagedClientConfig {
+	if m.PingFrequency <= 0 {
+		m.PingFrequency = 30 * time.Second // default used by Java client
 	}
-
-	return c
-}
-
-// setDefaults returns a modified config with appropriate zero values set to defaults.
-func (c ClientConfig) setDefaults() ClientConfig {
-	if c.PingFrequency <= 0 {
-		c.PingFrequency = 30 * time.Second // default used by Java client
+	if m.PingTimeout <= 0 {
+		m.PingTimeout = m.PingFrequency / 2
 	}
-	if c.PingTimeout <= 0 {
-		c.PingTimeout = c.PingFrequency / 2
+	if m.ConnectTimeout <= 0 {
+		m.ConnectTimeout = 5 * time.Second
 	}
-	if c.ConnectTimeout <= 0 {
-		c.ConnectTimeout = 5 * time.Second
+	if m.InitialReconnectDelay <= 0 {
+		m.InitialReconnectDelay = 1 * time.Second
 	}
-	if c.InitialReconnectDelay <= 0 {
-		c.InitialReconnectDelay = 1 * time.Second
+	if m.MaxReconnectDelay <= 0 {
+		m.MaxReconnectDelay = 2 * time.Minute
 	}
-	if c.MaxReconnectDelay <= 0 {
-		c.MaxReconnectDelay = 2 * time.Minute
-	}
-	return c
+	return m
 }
 
 // NewManagedClient returns a ManagedClient for the given address. The
 // Client will be created and monitored in the background.
-func NewManagedClient(cfg ClientConfig) *ManagedClient {
+func NewManagedClient(cfg ManagedClientConfig) *ManagedClient {
 	cfg = cfg.setDefaults()
 
 	m := ManagedClient{
@@ -101,7 +76,7 @@ func NewManagedClient(cfg ClientConfig) *ManagedClient {
 // ManagedClient wraps a Client with re-connect and
 // connection management logic.
 type ManagedClient struct {
-	cfg ClientConfig
+	cfg ManagedClientConfig
 
 	asyncErrs utils.AsyncErrors
 
@@ -197,7 +172,7 @@ func (m *ManagedClient) unset() {
 
 // newClient attempts to create a Client and perform a Connect request.
 func (m *ManagedClient) newClient(ctx context.Context) (*Client, error) {
-	client, err := NewClient(m.cfg)
+	client, err := NewClient(m.cfg.ClientConfig)
 	if err != nil {
 		return nil, err
 	}

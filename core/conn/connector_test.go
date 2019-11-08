@@ -21,7 +21,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/wolfstudy/pulsar-client-go/core/frame"
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
-	"github.com/wolfstudy/pulsar-client-go/utils"
 )
 
 func TestConnector(t *testing.T) {
@@ -156,7 +155,7 @@ func TestConnector_Error(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	errorMsg := api.CommandError{
-		RequestId: proto.Uint64(utils.UndefRequestID),
+		RequestId: proto.Uint64(undefRequestID),
 		Message:   proto.String("there was an error of sorts"),
 	}
 	f := frame.Frame{
@@ -165,7 +164,7 @@ func TestConnector_Error(t *testing.T) {
 			Error: &errorMsg,
 		},
 	}
-	if err := dispatcher.NotifyReqID(utils.UndefRequestID, f); err != nil {
+	if err := dispatcher.NotifyReqID(undefRequestID, f); err != nil {
 		t.Fatalf("HandleReqID() err = %v; nil expected", err)
 	}
 

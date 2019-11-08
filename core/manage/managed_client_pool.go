@@ -54,7 +54,7 @@ type clientPoolKey struct {
 // Get returns the ManagedClient for the given client configuration.
 // First the cache is checked for an existing client. If one doesn't exist,
 // a new one is created and cached, then returned.
-func (m *ClientPool) Get(cfg ClientConfig) *ManagedClient {
+func (m *ClientPool) Get(cfg ManagedClientConfig) *ManagedClient {
 	key := clientPoolKey{
 		logicalAddr:           strings.TrimPrefix(cfg.Addr, "pulsar://"),
 		dialTimeout:           cfg.DialTimeout,
@@ -107,7 +107,7 @@ const maxTopicLookupRedirects = 8
 // the ManagedClient for the discovered topic information.
 // https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#Topiclookup-6g0lo
 // incubator-pulsar/pulsar-client/src/main/java/org/apache/pulsar/client/impl/BinaryProtoLookupService.java
-func (m *ClientPool) ForTopic(ctx context.Context, cfg ClientConfig, topic string) (*ManagedClient, error) {
+func (m *ClientPool) ForTopic(ctx context.Context, cfg ManagedClientConfig, topic string) (*ManagedClient, error) {
 	// For initial lookup request, authoritative should == false
 	var authoritative bool
 	serviceAddr := cfg.Addr
