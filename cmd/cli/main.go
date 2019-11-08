@@ -62,7 +62,7 @@ var args = struct {
 }
 
 func main() {
-	flag.StringVar(&args.pulsar, "pulsar", args.pulsar, "pulsar address")
+	flag.StringVar(&args.pulsar, "pulsar", args.pulsar, "pulsar address. May start with pulsar:// or pulsar+ssl://")
 	flag.StringVar(&args.tlsCert, "tls-cert", args.tlsCert, "(optional) path to TLS certificate")
 	flag.StringVar(&args.tlsKey, "tls-key", args.tlsKey, "(optional) path to TLS key")
 	flag.StringVar(&args.tlsCA, "tls-ca", args.tlsKey, "(optional) path to root certificate")
@@ -91,11 +91,11 @@ func main() {
 		cancel()
 	}()
 
-	var tlsCfg *tls.Config
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: args.tlsSkipVerify,
+	}
+
 	if args.tlsCert != "" && args.tlsKey != "" {
-		tlsCfg = &tls.Config{
-			InsecureSkipVerify: args.tlsSkipVerify,
-		}
 		var err error
 		cert, err := tls.LoadX509KeyPair(args.tlsCert, args.tlsKey)
 		if err != nil {
@@ -103,16 +103,6 @@ func main() {
 			os.Exit(1)
 		}
 		tlsCfg.Certificates = []tls.Certificate{cert}
-
-		if args.tlsCA != "" {
-			rootCA, err := ioutil.ReadFile(args.tlsCA)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "error loading certificate authority:", err)
-				os.Exit(1)
-			}
-			tlsCfg.RootCAs = x509.NewCertPool()
-			tlsCfg.RootCAs.AppendCertsFromPEM(rootCA)
-		}
 
 		// Inspect certificate and print the CommonName attribute,
 		// since this may be used for authorization
@@ -124,6 +114,16 @@ func main() {
 			}
 			fmt.Printf("Using certificate pair with CommonName = %q\n", x509Cert.Subject.CommonName)
 		}
+	}
+
+	if args.tlsCA != "" {
+		rootCA, err := ioutil.ReadFile(args.tlsCA)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error loading certificate authority:", err)
+			os.Exit(1)
+		}
+		tlsCfg.RootCAs = x509.NewCertPool()
+		tlsCfg.RootCAs.AppendCertsFromPEM(rootCA)
 	}
 
 	mcp := manage.NewClientPool()
@@ -140,6 +140,7 @@ func main() {
 			ManagedClientConfig: manage.ManagedClientConfig{
 				ClientConfig: manage.ClientConfig{
 					Addr:      args.pulsar,
+					UseTLS:    args.tlsCert != "" && args.tlsKey != "",
 					TLSConfig: tlsCfg,
 					Errs:      asyncErrs,
 				},

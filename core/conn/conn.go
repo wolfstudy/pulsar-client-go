@@ -26,10 +26,15 @@ import (
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 )
 
+const (
+	SchemaPulsar    = "pulsar://"
+	SchemaPulsarTSL = "pulsar+ssl://"
+)
+
 // NewTCPConn creates a core using a TCPv4 connection to the given
 // (pulsar server) address.
 func NewTCPConn(addr string, timeout time.Duration) (*Conn, error) {
-	addr = strings.TrimPrefix(addr, "pulsar://")
+	addr = strings.TrimPrefix(addr, SchemaPulsar)
 
 	d := net.Dialer{
 		DualStack: false,
@@ -50,7 +55,8 @@ func NewTCPConn(addr string, timeout time.Duration) (*Conn, error) {
 // NewTLSConn creates a core using a TCPv4+TLS connection to the given
 // (pulsar server) address.
 func NewTLSConn(addr string, tlsCfg *tls.Config, timeout time.Duration) (*Conn, error) {
-	addr = strings.TrimPrefix(addr, "pulsar://")
+	addr = strings.TrimPrefix(addr, SchemaPulsar)
+	addr = strings.TrimPrefix(addr, SchemaPulsarTSL)
 
 	d := net.Dialer{
 		DualStack: false,

@@ -35,6 +35,8 @@ type ManagedClientConfig struct {
 
 // setDefaults returns a modified config with appropriate zero values set to defaults.
 func (m ManagedClientConfig) setDefaults() ManagedClientConfig {
+	m.ClientConfig = m.ClientConfig.setDefaults()
+
 	if m.PingFrequency <= 0 {
 		m.PingFrequency = 30 * time.Second // default used by Java client
 	}
@@ -186,7 +188,7 @@ func (m *ManagedClient) newClient(ctx context.Context) (*Client, error) {
 	if m.cfg.phyAddr != m.cfg.Addr {
 		proxyBrokerURL = m.cfg.Addr
 	}
-	if m.cfg.TLSConfig != nil {
+	if m.cfg.UseTLS {
 		_, err = client.ConnectTLS(ctx, proxyBrokerURL)
 	} else {
 		_, err = client.Connect(ctx, proxyBrokerURL)

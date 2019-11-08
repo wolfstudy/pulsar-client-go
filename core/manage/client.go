@@ -17,6 +17,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/wolfstudy/pulsar-client-go/core/conn"
@@ -35,10 +36,11 @@ const authMethodTLS = "tls"
 
 // ClientConfig is used to configure a Pulsar client.
 type ClientConfig struct {
-	Addr        string        // pulsar broker address. May start with pulsar://
+	Addr        string        // pulsar broker address. May start with pulsar:// or pulsar+ssl://
 	phyAddr     string        // if set, the TCP connection should be made using this address. This is only ever set during Topic Lookup
 	DialTimeout time.Duration // timeout to use when establishing TCP connection
-	TLSConfig   *tls.Config   // TLS configuration. May be nil, in which case TLS will not be used
+	UseTLS      bool          // use TLS to connect pulsar.
+	TLSConfig   *tls.Config   // TLS configuration, applies with UseTLS == true. May be nil
 	Errs        chan<- error  // asynchronous errors will be sent here. May be nil
 }
 
@@ -59,6 +61,10 @@ func (c ClientConfig) setDefaults() ClientConfig {
 		c.DialTimeout = 5 * time.Second
 	}
 
+	if strings.HasPrefix(c.Addr, conn.SchemaPulsarTSL) {
+		c.UseTLS = true
+	}
+
 	return c
 }
 
@@ -69,7 +75,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 	var cnx *conn.Conn
 	var err error
 
-	if cfg.TLSConfig != nil {
+	if cfg.UseTLS {
 		cnx, err = conn.NewTLSConn(cfg.connAddr(), cfg.TLSConfig, cfg.DialTimeout)
 	} else {
 		cnx, err = conn.NewTCPConn(cfg.connAddr(), cfg.DialTimeout)

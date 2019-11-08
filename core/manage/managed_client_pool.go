@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wolfstudy/pulsar-client-go/core/conn"
 	"github.com/wolfstudy/pulsar-client-go/pkg/api"
 )
 
@@ -55,10 +56,11 @@ type clientPoolKey struct {
 // First the cache is checked for an existing client. If one doesn't exist,
 // a new one is created and cached, then returned.
 func (m *ClientPool) Get(cfg ManagedClientConfig) *ManagedClient {
+	cfg = cfg.setDefaults()
 	key := clientPoolKey{
-		logicalAddr:           strings.TrimPrefix(cfg.Addr, "pulsar://"),
+		logicalAddr:           strings.TrimPrefix(strings.TrimPrefix(cfg.Addr, conn.SchemaPulsar), conn.SchemaPulsarTSL),
 		dialTimeout:           cfg.DialTimeout,
-		tls:                   cfg.TLSConfig != nil,
+		tls:                   cfg.UseTLS,
 		pingFrequency:         cfg.PingFrequency,
 		pingTimeout:           cfg.PingTimeout,
 		connectTimeout:        cfg.ConnectTimeout,
@@ -139,7 +141,7 @@ func (m *ClientPool) ForTopic(ctx context.Context, cfg ManagedClientConfig, topi
 
 		// Update configured address with address
 		// provided in response
-		if cfg.TLSConfig != nil {
+		if cfg.UseTLS {
 			cfg.Addr = lookupResp.GetBrokerServiceUrlTls()
 		} else {
 			cfg.Addr = lookupResp.GetBrokerServiceUrl()
