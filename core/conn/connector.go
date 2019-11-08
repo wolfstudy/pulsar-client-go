@@ -63,7 +63,7 @@ type Connector struct {
 // The provided context should have a timeout associated with it.
 //
 // It's required to have completed Connect/Connected before using the client.
-func (c *Connector) Connect(ctx context.Context, authMethod, proxyBrokerURL string) (*api.CommandConnected, error) {
+func (c *Connector) Connect(ctx context.Context, authMethod string, authData []byte, proxyBrokerURL string) (*api.CommandConnected, error) {
 	resp, cancel, err := c.dispatcher.RegisterGlobal()
 	if err != nil {
 		return nil, err
@@ -88,6 +88,7 @@ func (c *Connector) Connect(ctx context.Context, authMethod, proxyBrokerURL stri
 	}
 	if authMethod != "" {
 		connect.AuthMethodName = proto.String(authMethod)
+		connect.AuthData = authData
 	}
 	if proxyBrokerURL != "" {
 		connect.ProxyToBrokerUrl = proto.String(proxyBrokerURL)

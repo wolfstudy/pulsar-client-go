@@ -188,11 +188,7 @@ func (m *ManagedClient) newClient(ctx context.Context) (*Client, error) {
 	if m.cfg.phyAddr != m.cfg.Addr {
 		proxyBrokerURL = m.cfg.Addr
 	}
-	if m.cfg.UseTLS {
-		_, err = client.ConnectTLS(ctx, proxyBrokerURL)
-	} else {
-		_, err = client.Connect(ctx, proxyBrokerURL)
-	}
+	_, err = client.Connect(ctx, proxyBrokerURL)
 
 	if err != nil {
 		_ = client.Close()

@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wolfstudy/pulsar-client-go/core/auth"
 	"github.com/wolfstudy/pulsar-client-go/core/conn"
 	"github.com/wolfstudy/pulsar-client-go/core/frame"
 	"github.com/wolfstudy/pulsar-client-go/core/msg"
@@ -36,12 +37,13 @@ const authMethodTLS = "tls"
 
 // ClientConfig is used to configure a Pulsar client.
 type ClientConfig struct {
-	Addr        string        // pulsar broker address. May start with pulsar:// or pulsar+ssl://
-	phyAddr     string        // if set, the TCP connection should be made using this address. This is only ever set during Topic Lookup
-	DialTimeout time.Duration // timeout to use when establishing TCP connection
-	UseTLS      bool          // use TLS to connect pulsar.
-	TLSConfig   *tls.Config   // TLS configuration, applies with UseTLS == true. May be nil
-	Errs        chan<- error  // asynchronous errors will be sent here. May be nil
+	Addr           string              // pulsar broker address. May start with pulsar:// or pulsar+ssl://
+	phyAddr        string              // if set, the TCP connection should be made using this address. This is only ever set during Topic Lookup
+	DialTimeout    time.Duration       // timeout to use when establishing TCP connection
+	UseTLS         bool                // use TLS to connect pulsar.
+	TLSConfig      *tls.Config         // TLS configuration, applies with UseTLS == true. May be nil
+	Authentication auth.Authentication // authentication provider. May be nil
+	Errs           chan<- error        // asynchronous errors will be sent here. May be nil
 }
 
 // connAddr returns the address that should be used
@@ -65,6 +67,10 @@ func (c ClientConfig) setDefaults() ClientConfig {
 		c.UseTLS = true
 	}
 
+	if c.Authentication == nil {
+		c.Authentication = auth.NewAuthenticationDisabled()
+	}
+
 	return c
 }
 
@@ -76,6 +82,13 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 	var err error
 
 	if cfg.UseTLS {
+		if data := cfg.Authentication.GetAuthData(); data.HasDataForTls() {
+			if cfg.TLSConfig == nil {
+				cfg.TLSConfig = &tls.Config{}
+			}
+			cfg.TLSConfig.Certificates = data.GetTlsCertificates()
+		}
+
 		cnx, err = conn.NewTLSConn(cfg.connAddr(), cfg.TLSConfig, cfg.DialTimeout)
 	} else {
 		cnx, err = conn.NewTCPConn(cfg.connAddr(), cfg.DialTimeout)
@@ -92,6 +105,8 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 	c := &Client{
 		c:         cnx,
 		asyncErrs: utils.AsyncErrors(cfg.Errs),
+
+		authentication: cfg.Authentication,
 
 		dispatcher:    dispatcher,
 		subscriptions: subs,
@@ -128,6 +143,8 @@ type Client struct {
 	c         *conn.Conn
 	asyncErrs utils.AsyncErrors
 
+	authentication auth.Authentication
+
 	dispatcher *frame.Dispatcher
 
 	subscriptions *Subscriptions
@@ -155,27 +172,19 @@ func (c *Client) Close() error {
 // waits for either a CONNECTED response or the context to
 // timeout. Connect should be called immediately after
 // creating a client, before sending any other messages.
-// The "auth method" is not set in the CONNECT message.
-// See ConnectTLS for TLS auth method.
 // The proxyBrokerURL may be blank, or it can be used to indicate
 // that the client is connecting through a proxy server.
 // See "Connection establishment" for more info:
 // https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#Connectionestablishment-6pslvw
 func (c *Client) Connect(ctx context.Context, proxyBrokerURL string) (*api.CommandConnected, error) {
-	return c.connector.Connect(ctx, "", proxyBrokerURL)
-}
+	authMethod := c.authentication.GetAuthMethodName()
 
-// ConnectTLS sends a Connect message to the Pulsar server, then
-// waits for either a CONNECTED response or the context to
-// timeout. Connect should be called immediately after
-// creating a client, before sending any other messages.
-// The "auth method" is set to tls in the CONNECT message.
-// The proxyBrokerURL may be blank, or it can be used to indicate
-// that the client is connecting through a proxy server.
-// See "Connection establishment" for more info:
-// https://pulsar.incubator.apache.org/docs/latest/project/BinaryProtocol/#Connectionestablishment-6pslvw
-func (c *Client) ConnectTLS(ctx context.Context, proxyBrokerURL string) (*api.CommandConnected, error) {
-	return c.connector.Connect(ctx, authMethodTLS, proxyBrokerURL)
+	var authData []byte
+	if data := c.authentication.GetAuthData(); data.HasDataFromCommand() {
+		authData = data.GetCommandData()
+	}
+
+	return c.connector.Connect(ctx, authMethod, authData, proxyBrokerURL)
 }
 
 // Ping sends a PING message to the Pulsar server, then

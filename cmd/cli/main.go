@@ -31,6 +31,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/wolfstudy/pulsar-client-go/core/auth"
 	"github.com/wolfstudy/pulsar-client-go/core/manage"
 	"github.com/wolfstudy/pulsar-client-go/core/msg"
 )
@@ -91,23 +92,18 @@ func main() {
 		cancel()
 	}()
 
+	var authentication auth.Authentication
 	tlsCfg := &tls.Config{
 		InsecureSkipVerify: args.tlsSkipVerify,
 	}
 
 	if args.tlsCert != "" && args.tlsKey != "" {
-		var err error
-		cert, err := tls.LoadX509KeyPair(args.tlsCert, args.tlsKey)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "error loading certificates:", err)
-			os.Exit(1)
-		}
-		tlsCfg.Certificates = []tls.Certificate{cert}
+		authentication = auth.NewAuthenticationTLS(args.tlsCert, args.tlsKey)
 
 		// Inspect certificate and print the CommonName attribute,
 		// since this may be used for authorization
-		if len(cert.Certificate[0]) > 0 {
-			x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
+		if certs := authentication.GetAuthData().GetTlsCertificates(); len(certs) > 0 && len(certs[0].Certificate) > 0 && len(certs[0].Certificate[0]) > 0 {
+			x509Cert, err := x509.ParseCertificate(certs[0].Certificate[0])
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "error loading public certificate:", err)
 				os.Exit(1)
@@ -139,10 +135,11 @@ func main() {
 			MaxReconnectDelay:     time.Minute,
 			ManagedClientConfig: manage.ManagedClientConfig{
 				ClientConfig: manage.ClientConfig{
-					Addr:      args.pulsar,
-					UseTLS:    args.tlsCert != "" && args.tlsKey != "",
-					TLSConfig: tlsCfg,
-					Errs:      asyncErrs,
+					Addr:           args.pulsar,
+					UseTLS:         args.tlsCert != "" && args.tlsKey != "",
+					TLSConfig:      tlsCfg,
+					Authentication: authentication,
+					Errs:           asyncErrs,
 				},
 			},
 		}
